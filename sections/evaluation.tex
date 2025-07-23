@@ -1,12 +1,12 @@
 \section{Evaluation Methodology}
 
-We evaluate Sched-Agent on the following research questions:
+We evaluate \sys{} on the following research questions:
 
 \begin{enumerate}
-\item \emph{Performance Improvement:} Can Sched-Agent reduce makespan and wait time compared to baselines? We compare against classic heuristics (FCFS with EASY Backfilling, CFS-like round-robin) and state-of-the-art RL schedulers (Decima-style, DRAS).
-\item \emph{Generalization:} Does Sched-Agent work on new, unseen workloads? We test on a mixture of benchmark suites not used during any tuning: different DAG structures, job mixes, hardware configurations. We measure performance degradation if any and success rate of the LLM step in generating valid policies across domains.
-\item \emph{Ablations -- LLM vs RL:} What is the value of the LLM agent vs pure RL? We run variants: (a) LLM-only: use the generated policy without RL refinement, (b) RL-only: a conventional RL agent without the LLM-provided prior, (c) LLM+RL (full Sched-Agent). This quantifies how much LLM bootstraps improvement.
-\item \emph{Adaptivity:} Can Sched-Agent adapt to changing workloads? We simulate workload shifts (e.g. sudden introduction of I/O-heavy jobs) and observe how quickly Sched-Agent reconfigures itself, comparing to static baselines and retrained RL.
+\item \emph{Performance Improvement:} Can \sys{} reduce makespan and wait time compared to baselines? We compare against classic heuristics (FCFS with EASY Backfilling, CFS-like round-robin) and state-of-the-art RL schedulers (Decima-style, DRAS).
+\item \emph{Generalization:} Does \sys{} work on new, unseen workloads? We test on a mixture of benchmark suites not used during any tuning: different DAG structures, job mixes, hardware configurations. We measure performance degradation if any and success rate of the LLM step in generating valid policies across domains.
+\item \emph{Ablations -- LLM vs RL:} What is the value of the LLM agent vs pure RL? We run variants: (a) LLM-only: use the generated policy without RL refinement, (b) RL-only: a conventional RL agent without the LLM-provided prior, (c) LLM+RL (full \sys{}). This quantifies how much LLM bootstraps improvement.
+\item \emph{Adaptivity:} Can \sys{} adapt to changing workloads? We simulate workload shifts (e.g. sudden introduction of I/O-heavy jobs) and observe how quickly \sys{} reconfigures itself, comparing to static baselines and retrained RL.
 \item \emph{Overhead:} What is the runtime overhead of using an LLM and RL? We measure the time for policy generation and RL iterations, and show this overhead is modest compared to job runtimes (suitable for offline or low-frequency tuning).
 \end{enumerate}
 

@@ -45,6 +45,10 @@
 %%
 %%
 \documentclass[sigconf]{acmart}
+
+%% Define the \sys command for the system name
+\newcommand{\sys}{Sched-Agent}
+
 %%
 %% \BibTeX command to typeset BibTeX logo in the docs
 \AtBeginDocument{%
@@ -197,7 +201,7 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-  Modern high-performance computing (HPC) workloads and cloud services exhibit highly dynamic and heterogeneous characteristics that defeat one-size-fits-all static schedulers. Manually designing and tuning scheduling policies for each workload is laborious and brittle. We propose \textbf{Sched-Agent}, an AI-driven framework that \textbf{automatically generates and configures dynamic schedulers} tailored to each workload. Our system leverages a large language model (LLM) as an intelligent agent to \textbf{analyze workload descriptions and system goals}, then emits scheduling policies in a domain-specific language (DSL). These policies are further refined via reinforcement learning (RL) fine-tuning. Sched-Agent requires no manual expert input or workload-specific training: the LLM's reasoning capability identifies workload patterns and generates executable scheduling strategies. Using diverse benchmarks (HPC kernels, dataflow DAGs, and agent-based workloads), we show that Sched-Agent consistently outperforms traditional schedulers and RL-only methods, while generalizing across workloads without retraining. Our contributions include (1) a novel agent-based scheduler synthesis framework combining LLM reasoning and RL tuning, (2) a scheduling DSL bridging LLM output and system execution, and (3) a comprehensive evaluation demonstrating improved makespan, utilization, and fairness across varied workloads.
+  Modern high-performance computing (HPC) workloads and cloud services exhibit highly dynamic and heterogeneous characteristics that defeat one-size-fits-all static schedulers. Manually designing and tuning scheduling policies for each workload is laborious and brittle. We propose \sys{}, an AI-driven framework that automatically generates and configures dynamic schedulers tailored to each workload. Our system leverages a large language model (LLM) as an intelligent agent to analyze workload descriptions and system goals, then emits scheduling policies in a domain-specific language (DSL). These policies are further refined via reinforcement learning (RL) fine-tuning. \sys{} requires no manual expert input or workload-specific training: the LLM's reasoning capability identifies workload patterns and generates executable scheduling strategies. Using diverse benchmarks (HPC kernels, dataflow DAGs, and agent-based workloads), we show that \sys{} consistently outperforms traditional schedulers and RL-only methods, while generalizing across workloads without retraining. Our contributions include (1) a novel agent-based scheduler synthesis framework combining LLM reasoning and RL tuning, (2) a scheduling DSL bridging LLM output and system execution, and (3) a comprehensive evaluation demonstrating improved makespan, utilization, and fairness across varied workloads.
 \end{abstract}
 
 
@@ -281,7 +285,7 @@ This work was supported in part by...
 %% The next two lines define the bibliography style to be used, and
 %% the bibliography file.
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{sched-agent}
+\bibliography{sample-base}
 
 \end{document}
 
