@@ -1,0 +1,44 @@
+# LaTeX temporary files
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.toc
+*.lof
+*.lot
+*.cut
+*.gz
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.synctex(busy)
+*.nav
+*.snm
+*.vrb
+*.dvi
+*.ps
+sample-sigconf.pdf
+
+# Bibliography temporary files
+*.bib.bak
+*.bib.sav
+
+# Editor temporary files
+*~
+*.swp
+*.swo
+*.backup
+.#*
+\#*#
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build directories
+build/
+out/
+
+# PDF output (uncomment if you don't want to track PDFs)
+# *.pdf
