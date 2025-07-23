@@ -1,0 +1,17 @@
+\section{Evaluation Methodology}
+
+We evaluate Sched-Agent on the following research questions:
+
+\begin{enumerate}
+\item \emph{Performance Improvement:} Can Sched-Agent reduce makespan and wait time compared to baselines? We compare against classic heuristics (FCFS with EASY Backfilling, CFS-like round-robin) and state-of-the-art RL schedulers (Decima-style, DRAS).
+\item \emph{Generalization:} Does Sched-Agent work on new, unseen workloads? We test on a mixture of benchmark suites not used during any tuning: different DAG structures, job mixes, hardware configurations. We measure performance degradation if any and success rate of the LLM step in generating valid policies across domains.
+\item \emph{Ablations -- LLM vs RL:} What is the value of the LLM agent vs pure RL? We run variants: (a) LLM-only: use the generated policy without RL refinement, (b) RL-only: a conventional RL agent without the LLM-provided prior, (c) LLM+RL (full Sched-Agent). This quantifies how much LLM bootstraps improvement.
+\item \emph{Adaptivity:} Can Sched-Agent adapt to changing workloads? We simulate workload shifts (e.g. sudden introduction of I/O-heavy jobs) and observe how quickly Sched-Agent reconfigures itself, comparing to static baselines and retrained RL.
+\item \emph{Overhead:} What is the runtime overhead of using an LLM and RL? We measure the time for policy generation and RL iterations, and show this overhead is modest compared to job runtimes (suitable for offline or low-frequency tuning).
+\end{enumerate}
+
+\emph{Workloads and Metrics.} We use diverse benchmarks: HPC DAGs (e.g. Cholesky, LU from [49]), dataflow graphs, and real job traces from supercomputers. Metrics include \emph{average job completion time}, \emph{makespan}, \emph{cluster utilization}, and \emph{fairness}. For multi-tenant settings, we also track \emph{Jain's fairness index}.
+
+\emph{Baselines.} In addition to standard schedulers, we compare to specialized systems: \emph{Llumnix} for LLM-serving latency scheduling, \emph{Agent.xpu} for on-device LLM kernels (to gauge how domain-specific schedulers behave), and \emph{AutoSched} (the closest auto-tuning framework~\cite{tianweiz07,tianweiz07b}). While these focus on specific domains (deep learning jobs, DLT clusters), they provide performance references.
+
+All experiments are conducted on a simulated cluster of 100 nodes (each with 4 GPUs) to cover large-scale workloads. For reproducibility, our code and workloads will be open-sourced, following prior work practices.
