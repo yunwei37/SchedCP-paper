@@ -1,4 +1,4 @@
-# **Sched‑Agent: AI Agent–Guided Dynamic Scheduler Synthesis and Configuration**
+# **Sched‑Agent: AI Agent–Guided Dynamic Scheduler Optimization**
 
 ## **Abstract**
 
