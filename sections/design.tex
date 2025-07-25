@@ -2,43 +2,21 @@
 
 \subsection{Design Philosophy and Constraints}
 
-Our system is built on the understanding that AI agents are fundamentally context engineering systems—they need sufficient information to make decisions but not so much that costs become prohibitive. This mirrors how human experts approach optimization: using the right tools to collect profiling data and implementing programmable policies with appropriate frameworks. As system researchers, our goal is not to design better AI agents, but to design better systems and interfaces that can be effectively used by AI agents.
+Keep in mind that we are building a system interface that can be used by AI. As the AI Agent becomes more powerful and general, all software we currently design will be used by and maintained by AI in next few years.
+
+Our core insight is that AI agents are fundamentally context engineering systems—they need sufficient information to make decisions but not so much that costs become prohibitive. This mirrors how human experts approach optimization: using the right tools to collect profiling data and implementing programmable policies with appropriate frameworks. Choosing the wrong toolset and framework will cost a lot of extra time, when time is money. As system researchers, our goal is not to design better AI agents, but to design better systems and interfaces that can be effectively used by AI agents.
 
 \subsubsection{Decoupling and Role Separation}
-\textbf{Principle}: Separate ``what to optimize'' (AI problem) from ``how to observe and act'' (system problem).
-
-We treat AI agents as performance engineers, establishing clear interface boundaries:
-\begin{itemize}
-\item \textbf{AI Responsibilities}: Understand workload patterns, identify optimization opportunities, generate scheduling strategies
-\item \textbf{System Responsibilities}: Provide observations, execute actions safely, enforce constraints
-\item \textbf{Evolution-Ready Design}: Future AI models can leverage the same interfaces without system redesign
-\end{itemize}
-
-This separation ensures that as AI capabilities improve, the system naturally benefits without architectural changes.
+Our first design principle separates ``what to optimize'' (the AI's domain) from ``how to observe and act'' (the system's domain). We treat AI agents as performance engineers, establishing clear interface boundaries that define responsibilities. The AI agents focus on understanding workload patterns, identifying optimization opportunities, and generating scheduling strategies. Meanwhile, the system takes responsibility for providing observations, executing actions safely, and enforcing constraints. This evolution-ready design ensures that future AI models can leverage the same interfaces without requiring system redesign. As AI capabilities improve, the system naturally benefits without architectural changes, maintaining a stable foundation while allowing the intelligence layer to evolve independently.
 
 \subsubsection{Context and Feedback Balance}
-\textbf{Principle}: Provide sufficient context for good decisions while controlling costs.
-
-AI agents face a fundamental trade-off between information completeness and token costs:
-\begin{itemize}
-\item \textbf{Adaptive Context Window}: Start with minimal context for simple decisions, progressively add detail for complex scenarios
-\item \textbf{Learned Relevance}: Track which context matters for which workload types
-\item \textbf{Feedback Integration}: Add previous results to context for improved future decisions
-\item \textbf{Cost-Aware APIs}: Expose controls for information granularity based on decision importance
-\end{itemize}
+AI agents face a fundamental trade-off between information completeness and token costs. Our design addresses this through an adaptive context window that starts with minimal context for simple decisions and progressively adds detail for complex scenarios. The system learns which context matters for which workload types, building a knowledge base of relevant information patterns. By integrating previous results into the context, we enable improved future decisions through experiential learning. Our cost-aware APIs expose controls for information granularity, allowing the system to adjust detail levels based on decision importance. This approach ensures that routine optimizations remain cost-effective while complex scenarios receive the detailed analysis they require.
 
 \subsubsection{Composable Tool Architecture}
-\textbf{Principle}: Leverage LLM code generation abilities through programmable, composable tools.
+Following Unix philosophy, our system leverages LLM code generation abilities through programmable, composable tools. At the foundation, we provide atomic tools for basic operations like \texttt{get\_cpu\_stats()} and \texttt{set\_scheduler\_param()}. These atomic building blocks can be combined into compositional tools that handle complex workflows. The AI can dynamically create new tool combinations for novel scenarios and even generate custom analysis scripts on demand. This flexibility allows the system to adapt to unexpected workload patterns without requiring manual intervention.
 
-Following Unix philosophy, we provide:
-\begin{itemize}
-\item \textbf{Atomic Tools}: Basic operations like \texttt{get\_cpu\_stats()}, \texttt{set\_scheduler\_param()}
-\item \textbf{Compositional Tools}: Complex workflows built from atomic operations
-\item \textbf{Dynamic Tool Chains}: AI can create new tool combinations for novel scenarios
-\item \textbf{Generated Tools}: AI writes custom analysis scripts on demand
-\end{itemize}
+For example, atomic tools can be composed into sophisticated profiling functions that track workload phases and analyze patterns. The AI might generate custom analysis routines that detect compilation patterns and prioritize tasks based on dependency graphs—optimizations that would be difficult to anticipate in advance. This composable architecture ensures that the system's capabilities grow with each new workload it encounters, building an ever-expanding toolkit of optimization strategies.
 
-Example tool composition:
 \begin{verbatim}
 # Atomic tools
 stats = get_cpu_stats()
@@ -60,80 +38,32 @@ def custom_analysis():
 \end{verbatim}
 
 \subsubsection{Safety-First Interface Design}
-\textbf{Core Principle}: Treat AI as a potentially non-cautious actor requiring defensive interfaces.
+Our core principle treats AI as a potentially non-cautious actor requiring defensive interfaces. This approach manifests through multiple layers of protection. Our defensive API design ensures that no single API call can crash the system, with all operations having built-in bounds and limits. For instance, \texttt{set\_cpu\_limit()} has a hard maximum of 95\% to prevent CPU starvation, protecting the system even if the AI requests unreasonable values.
 
-\textbf{Defensive API Design}:
-\begin{itemize}
-\item No single API call can crash the system
-\item All operations have built-in bounds and limits
-\item Example: \texttt{set\_cpu\_limit()} has hard max of 95\% to prevent starvation
-\end{itemize}
+Staged execution with validation provides another safety layer. Preview modes show effects before execution, while dry-run capabilities allow testing of all potentially destructive operations. Mandatory validation checks occur between code generation and deployment, catching issues before they impact production systems. The constrained action space follows a whitelist approach rather than blacklisting dangerous operations. New agents start with limited permissions, restricted to 20\% parameter variations initially, and earn greater autonomy through successful operations.
 
-\textbf{Staged Execution with Validation}:
-\begin{itemize}
-\item Preview mode shows effects before execution
-\item Dry-run capabilities for all destructive operations
-\item Mandatory validation between generation and deployment
-\end{itemize}
-
-\textbf{Constrained Action Space}:
-\begin{itemize}
-\item Whitelist allowed operations, not blacklist dangerous ones
-\item Graduated permissions based on success history
-\item New agents limited to 20\% parameter variations initially
-\end{itemize}
-
-\textbf{Automatic Safety Rails}:
-\begin{itemize}
-\item System-enforced resource limits
-\item Circuit breakers for performance degradation
-\item Watchdog timers for all AI operations
-\item Clear audit trails for debugging
-\end{itemize}
+Automatic safety rails operate at the system level, enforcing resource limits regardless of AI requests. Circuit breakers activate when performance degrades, watchdog timers bound all AI operations, and comprehensive audit trails enable debugging and accountability. These mechanisms ensure that even if an AI agent makes poor decisions, the system remains stable and recoverable.
 
 \subsection{Core System Components}
 
 \subsubsection{Multi-Layer RL LLM Agent}
-Our agent architecture consists of three specialized layers working in concert:
+Our agent architecture consists of three specialized layers working in concert to deliver intelligent scheduler optimization. The Decision Layer serves as the strategic brain, analyzing workload descriptions and system state to select high-level strategies. It determines whether to configure an existing scheduler, modify one for new requirements, or create an entirely new scheduler. This layer reasons about trade-offs between different approaches, considering factors like implementation complexity, expected performance gains, and time constraints.
 
-\textbf{Decision Layer}:
-\begin{itemize}
-\item Analyzes workload descriptions and system state
-\item Selects high-level strategy: configure existing, modify, or create new scheduler
-\item Reasons about trade-offs between different approaches
-\end{itemize}
+The Implementation Layer translates high-level decisions into concrete code and configurations. It generates eBPF C code for kernel components and Rust code for userspace components, ensuring all generated code follows sched\_ext conventions and safety requirements. This layer handles the technical complexities of kernel programming, allowing the Decision Layer to focus on strategy rather than implementation details.
 
-\textbf{Implementation Layer}:
-\begin{itemize}
-\item Translates decisions into concrete code or configurations
-\item Generates eBPF C code and Rust userspace components
-\item Ensures code follows sched\_ext conventions and safety requirements
-\end{itemize}
-
-\textbf{Learning Layer}:
-\begin{itemize}
-\item Applies reinforcement learning from performance feedback
-\item Updates strategy selection based on outcomes
-\item Maintains context memory for future decisions
-\end{itemize}
+The Learning Layer applies reinforcement learning techniques to continuously improve performance. It processes feedback from deployed schedulers, updates strategy selection based on observed outcomes, and maintains context memory for future decisions. This creates a feedback loop where each deployment enriches the system's understanding of what works for different workload types.
 
 \subsubsection{AI-Managed Scheduler Library}
-The scheduler library serves as institutional memory and reusable component repository:
+The scheduler library serves as institutional memory and a reusable component repository for the system. Each library entry contains a comprehensive record of a scheduler's characteristics and performance history. The natural language description summarizes the scheduler's purpose and ideal use cases, making it easy for AI agents to understand when to apply each scheduler. Configuration parameters are well-defined with ranges and defaults, allowing fine-tuning without risking system stability.
 
-\textbf{Library Entry Structure}:
-\begin{itemize}
-\item \textbf{Description}: Natural language summary of purpose and characteristics
-\item \textbf{Configuration Parameters}: Well-defined tunables with ranges and defaults
-\item \textbf{Source Code}: Complete eBPF and userspace implementation
-\item \textbf{Performance History}: Metrics from previous deployments
-\item \textbf{Test Results}: Verification status and benchmark scores
-\end{itemize}
+Each entry includes complete source code for both eBPF kernel components and userspace implementations, enabling immediate deployment or modification. Performance history from previous deployments provides empirical evidence of effectiveness across different workload types. Test results, including verification status and benchmark scores, ensure that only validated schedulers enter production use.
 
-\textbf{Example Entry}:
+For example, a compilation-aware scheduler entry might indicate that it optimizes software builds by prioritizing tasks based on dependency depth, achieving 1.8x speedup for kernel builds across 50 test samples. This rich metadata enables intelligent scheduler selection and configuration based on workload requirements.
+
 \begin{verbatim}
 {
   "name": "scx_compilation_aware",
-  "description": "Optimizes for software builds by prioritizing 
+  "description": "Optimizes for software builds by prioritizing
                   tasks based on dependency depth",
   "parameters": {
     "boost_factor": {"default": 2.0, "range": [1.0, 5.0]},
@@ -148,167 +78,77 @@ The scheduler library serves as institutional memory and reusable component repo
 \end{verbatim}
 
 \subsubsection{Static Analysis \& Testing Framework}
-Safety-critical validation before any scheduler deployment:
+Our framework implements safety-critical validation before any scheduler deployment, ensuring that AI-generated code meets stringent safety and performance requirements. The BPF verification pipeline pre-validates code against kernel verifier rules, checking for common pitfalls like infinite loops and invalid memory accesses. It estimates verification complexity to avoid timeouts during kernel loading, providing early feedback to the AI agent about code viability.
 
-\textbf{BPF Verification Pipeline}:
-\begin{itemize}
-\item Pre-validate against kernel verifier rules
-\item Check for common pitfalls (infinite loops, invalid memory access)
-\item Estimate verification complexity to avoid timeouts
-\end{itemize}
+Performance estimation uses static analysis to predict scheduler overhead before deployment. The system analyzes instruction counts, branch complexity metrics, and cache behavior patterns to identify potential performance bottlenecks. This early performance feedback helps the AI refine its implementations before they impact production workloads.
 
-\textbf{Performance Estimation}:
-\begin{itemize}
-\item Static analysis of scheduler overhead
-\item Instruction count and branch complexity metrics
-\item Cache behavior prediction
-\end{itemize}
-
-\textbf{Automated Testing}:
-\begin{itemize}
-\item Unit tests for individual scheduler functions
-\item Integration tests with simulated workloads
-\item Stress tests for edge cases and error conditions
-\end{itemize}
+Automated testing provides comprehensive validation through multiple layers. Unit tests verify individual scheduler functions, integration tests validate behavior with simulated workloads, and stress tests explore edge cases and error conditions. This multi-tiered testing approach catches issues that might only manifest under specific conditions, ensuring robust scheduler implementations.
 
 \subsubsection{Scheduler Optimization Libraries}
-Pre-built patterns and primitives for rapid scheduler development:
+Our optimization libraries provide pre-built patterns and primitives for rapid scheduler development. The production scheduler collection includes battle-tested implementations like \texttt{scx\_rusty}, a work-stealing scheduler with sophisticated load balancing; \texttt{scx\_layered}, which provides hierarchical scheduling with cgroup awareness; and \texttt{scx\_central}, a centralized queue scheduler optimized for NUMA systems. These production-ready schedulers serve as both deployment options and learning examples for the AI.
 
-\textbf{Production Scheduler Collection}:
-\begin{itemize}
-\item \texttt{scx\_rusty}: Work-stealing scheduler with load balancing
-\item \texttt{scx\_layered}: Hierarchical scheduling with cgroup awareness
-\item \texttt{scx\_central}: Centralized queue scheduler for NUMA systems
-\end{itemize}
+Algorithm primitives offer fundamental building blocks including FIFO, LIFO, and priority queue implementations. The library includes CFS-style virtual runtime tracking for fairness, work-stealing and migration policies for load balancing, and CPU affinity patterns for NUMA optimization. These primitives can be combined and customized to create novel scheduling algorithms tailored to specific workload requirements.
 
-\textbf{Algorithm Primitives}:
-\begin{itemize}
-\item FIFO, LIFO, priority queue implementations
-\item CFS-style virtual runtime tracking
-\item Work-stealing and migration policies
-\item CPU affinity and NUMA awareness patterns
-\end{itemize}
-
-\textbf{Smart Retrieval}:
-\begin{itemize}
-\item Semantic search using workload descriptions
-\item Performance-based ranking from historical data
-\item Automatic pattern extraction from successful schedulers
-\end{itemize}
+Smart retrieval capabilities enable efficient library usage through semantic search using natural language workload descriptions. Performance-based ranking leverages historical data to suggest the most effective schedulers for similar workloads. The system automatically extracts successful patterns from AI-generated schedulers, continuously enriching the library with new optimization strategies discovered through experience.
 
 \subsubsection{Profiling \& Monitoring Toolkit}
-Comprehensive workload analysis and system observability:
+Our toolkit provides comprehensive workload analysis and system observability essential for intelligent scheduler optimization. Workload profiling captures CPU usage patterns and automatically detects phase transitions, identifying when workloads shift between compute-intensive and I/O-bound behaviors. The system analyzes memory access patterns and working set sizes to understand cache requirements, while monitoring I/O behavior and syscall frequencies reveals application communication patterns. Task creation rates and lifetimes help identify whether workloads are batch-oriented or interactive.
 
-\textbf{Workload Profiling}:
-\begin{itemize}
-\item CPU usage patterns and phase detection
-\item Memory access patterns and working set sizes
-\item I/O behavior and syscall frequencies
-\item Task creation rates and lifetimes
-\end{itemize}
+Real-time monitoring tracks critical scheduler metrics including decision latencies, queue depths, and wait times. The system monitors CPU utilization and idle statistics to identify inefficiencies, while tracking context switch rates and migration counts to understand scheduler overhead. This real-time data enables rapid detection of performance anomalies and provides immediate feedback for scheduler adjustments.
 
-\textbf{Real-time Monitoring}:
-\begin{itemize}
-\item Scheduler decision latencies
-\item Queue depths and wait times
-\item CPU utilization and idle statistics
-\item Context switch rates and migration counts
-\end{itemize}
-
-\textbf{Low-overhead Implementation}:
-\begin{itemize}
-\item eBPF probes for zero-copy data collection
-\item Hardware performance counters
-\item Aggregation in kernel space to reduce overhead
-\end{itemize}
+Our low-overhead implementation ensures that monitoring doesn't impact the workloads being optimized. eBPF probes enable zero-copy data collection directly in kernel space, hardware performance counters provide cycle-accurate measurements, and in-kernel aggregation reduces the data volume before it reaches userspace. This design allows continuous monitoring in production environments without measurable performance impact.
 
 \subsubsection{Unified Agent Extension Framework}
-Standardized interface enabling any AI agent to optimize schedulers:
+Our framework provides a standardized interface enabling any AI agent to optimize schedulers, from open-source models to proprietary systems. The Model Context Protocol (MCP) server implements a RESTful API for workload submission and scheduler retrieval, with streaming interfaces for real-time monitoring data. Standardized response formats ensure compatibility across different AI models, allowing organizations to switch between AI providers without system changes.
 
-\textbf{Model Context Protocol (MCP) Server}:
-\begin{itemize}
-\item RESTful API for workload submission and scheduler retrieval
-\item Streaming interface for real-time monitoring data
-\item Standardized response formats across different AI models
-\end{itemize}
+The tool library exposes atomic operations as individual endpoints while providing composite workflows as higher-level abstractions. This dual-level approach allows simple agents to use high-level tools while sophisticated agents can compose custom workflows from atomic operations. The framework supports custom tool registration, enabling agent-specific extensions without modifying the core system.
 
-\textbf{Tool Library}:
-\begin{itemize}
-\item Atomic operations exposed as individual endpoints
-\item Composite workflows as higher-level abstractions
-\item Custom tool registration for agent-specific needs
-\end{itemize}
-
-\textbf{Safety Governance}:
-\begin{itemize}
-\item Role-based access control for different operations
-\item Rate limiting to prevent resource exhaustion
-\item Audit logging for all AI actions
-\item Resource quotas per agent instance
-\end{itemize}
+Safety governance ensures secure multi-tenant operation through role-based access control that restricts operations based on agent capabilities and trust levels. Rate limiting prevents resource exhaustion from runaway agents, while comprehensive audit logging tracks all AI actions for debugging and compliance. Resource quotas per agent instance ensure fair sharing of system resources and prevent any single agent from monopolizing the optimization infrastructure.
 
 \subsection{RL Algorithm Suite}
 
 \subsubsection{In-Context Learning}
-Leverages LLM's ability to learn from examples within the prompt:
-\begin{itemize}
-\item Performance feedback added to agent context
-\item Successful scheduler examples included as references
-\item Failed attempts with explanations for learning
-\end{itemize}
+Our system leverages LLMs' remarkable ability to learn from examples within their context window. Performance feedback from previous scheduler deployments is automatically added to the agent's context, creating a dynamic learning environment. Successful scheduler implementations serve as reference examples, showing the AI what works for different workload types. Failed attempts are equally valuable, included with detailed explanations of what went wrong and why. This approach allows the AI to learn from both successes and failures without requiring model retraining, adapting its strategies based on accumulated experience within a single session.
 
 \subsubsection{Bayesian Optimization}
-Efficient parameter tuning with uncertainty quantification:
-\begin{itemize}
-\item Gaussian process models for parameter-performance relationships
-\item Acquisition functions balancing exploration and exploitation
-\item Automatic hyperparameter selection
-\end{itemize}
+Bayesian optimization provides efficient parameter tuning with built-in uncertainty quantification. The system uses Gaussian process models to learn parameter-performance relationships, building probabilistic models of how scheduler parameters affect workload performance. Acquisition functions carefully balance exploration of uncertain parameter regions with exploitation of known good configurations. Automatic hyperparameter selection adapts the optimization process itself, tuning the trade-off between exploration and exploitation based on the observed variability in performance outcomes. This principled approach minimizes the number of configuration attempts needed to find optimal parameters.
 
 \subsubsection{Multi-Armed Bandits}
-Scheduler selection under uncertainty:
-\begin{itemize}
-\item Thompson sampling for probabilistic selection
-\item Upper confidence bounds for optimistic exploration
-\item Contextual bandits using workload features
-\end{itemize}
+Multi-armed bandit algorithms address the challenge of scheduler selection under uncertainty. Thompson sampling provides probabilistic selection based on estimated performance distributions, naturally balancing the exploration of untested schedulers with exploitation of proven performers. Upper confidence bound approaches take an optimistic view, selecting schedulers that might perform well given current uncertainty. Contextual bandits extend these approaches by incorporating workload features, learning which scheduler characteristics correlate with success for different workload types. This creates an adaptive selection mechanism that improves with experience while maintaining good performance throughout the learning process.
 
 \subsubsection{Workload Pattern Learning}
-Detect and adapt to changing workload phases:
-\begin{itemize}
-\item Hidden Markov models for phase detection
-\item Change point detection algorithms
-\item Online clustering of workload behaviors
-\end{itemize}
+Our system actively detects and adapts to changing workload phases, recognizing that modern applications often exhibit complex, time-varying behavior. Hidden Markov models identify distinct workload phases and predict transitions between them, enabling proactive scheduler adjustments. Change point detection algorithms quickly identify when workload characteristics shift, triggering re-evaluation of the current scheduling strategy. Online clustering continuously groups similar workload behaviors, building a dynamic taxonomy of workload patterns that helps the system recognize and respond to recurring scenarios. This adaptive approach ensures optimal performance even as workloads evolve throughout their execution.
 
 \subsection{Self-Evolution Process}
 
 The system continuously improves through experience:
 
-\textbf{1. Experience Collection}:
-\begin{itemize}
-\item Every scheduler execution generates performance data
-\item Workload characteristics linked to scheduler effectiveness
-\item Failed attempts analyzed for root causes
-\end{itemize}
+The system continuously improves through a structured self-evolution process that transforms individual experiences into collective intelligence. Experience collection forms the foundation, with every scheduler execution generating valuable performance data. The system meticulously links workload characteristics to scheduler effectiveness, building a comprehensive understanding of what works when and why. Failed attempts receive special attention through root cause analysis, ensuring the system learns from mistakes rather than repeating them.
 
-\textbf{2. Pattern Extraction}:
-\begin{itemize}
-\item Successful optimizations become library patterns
-\item Common failure modes identified and avoided
-\item Cross-workload generalizations discovered
-\end{itemize}
+Pattern extraction transforms raw experience into reusable knowledge. Successful optimizations are distilled into library patterns that can be applied to new scenarios. The system identifies common failure modes and builds defensive strategies to avoid them. Cross-workload generalizations emerge as the system discovers principles that apply broadly across different application types.
 
-\textbf{3. Library Evolution}:
-\begin{itemize}
-\item New schedulers added when existing ones insufficient
-\item Underperforming schedulers deprecated
-\item Hybrid schedulers created from successful components
-\end{itemize}
+Library evolution ensures the scheduler collection remains relevant and effective. New schedulers are automatically added when existing options prove insufficient for novel workloads. Underperforming schedulers are deprecated based on empirical evidence, keeping the library focused on proven solutions. The system creates hybrid schedulers by combining successful components from different implementations, exploring new design spaces through automated synthesis.
 
-\textbf{4. Knowledge Transfer}:
-\begin{itemize}
-\item Lessons from one workload type applied to similar ones
-\item Architecture-specific optimizations shared across schedulers
-\item Meta-strategies emerge from accumulated experience
-\end{itemize}
+Knowledge transfer amplifies the value of each learning experience. Lessons learned from one workload type are systematically applied to similar scenarios, accelerating optimization for new applications. Architecture-specific optimizations discovered for one scheduler are shared across the library, ensuring all schedulers benefit from hardware-specific insights. Over time, meta-strategies emerge from accumulated experience, providing high-level principles that guide future optimization efforts.
+
+\subsection{System Architecture}
+
+Our system architecture separates the production environment from the AI agent system through well-defined interfaces. The production system runs application workloads under the Linux kernel with sched\_ext, while a performance monitor daemon collects metrics. The MCP server provides the interface between production and AI systems, exposing tools for workload analysis and scheduler deployment.
+
+The AI agent system consists of the multi-layer RL LLM agent that makes optimization decisions, the scheduler library that stores reusable components, and the safety validation pipeline that ensures code correctness. This modular design allows different components to evolve independently while maintaining system stability. The production system communicates with the AI agent through standardized APIs, ensuring that scheduler deployment, monitoring, and feedback collection occur seamlessly without disrupting running workloads.
+
+The agent workflow follows a systematic process: (1) workload analysis to understand application characteristics, (2) library search to find existing suitable schedulers, (3) decision making to configure, modify, or create new schedulers, (4) validation to ensure safety and correctness, (5) deployment to the production system, and (6) feedback collection for continuous improvement. This lifecycle ensures that every scheduler optimization is both safe and effective.
+
+Figure~\ref{fig:architecture} shows a placeholder for our system architecture diagram, illustrating how the production system interfaces with the AI agent system through the MCP server.
+
+\begin{figure}[h]
+\centering
+\fbox{\parbox{0.9\columnwidth}{\centering
+\vspace{2cm}
+System Architecture Diagram\\
+(Production System $\leftrightarrow$ MCP Server $\leftrightarrow$ AI Agent System)\\
+\vspace{2cm}
+}}
+\caption{System Architecture: Production system (top) interfaces with AI agent system (bottom) through MCP server. The AI agent selects, modifies, or generates schedulers based on workload analysis, with all code passing through safety validation before deployment.}
+\label{fig:architecture}
+\end{figure}

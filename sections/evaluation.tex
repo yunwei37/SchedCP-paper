@@ -82,6 +82,18 @@ Success rate & 65\% & 92\% & 95\% & +30pp \\
 
 \subsubsection{RQ4: How much can RL improve performance after initial generation?}
 
+\begin{figure}[h]
+\centering
+\fbox{\parbox{0.9\columnwidth}{\centering
+\vspace{1.5cm}
+RL Performance Improvement Over Time\\
+(Showing iterative improvement through feedback loop)\\
+\vspace{1.5cm}
+}}
+\caption{RL Performance Improvement Over Time}
+\label{fig:rl-improvement}
+\end{figure}
+
 While LLMs excel at generating reasonable initial implementations based on their training, they cannot directly observe runtime behavior or learn from deployment experience. Our reinforcement learning component addresses this limitation by continuously optimizing schedulers based on actual performance feedback. This research question quantifies the additional benefits of RL-based refinement beyond initial LLM generation.
 
 \textbf{Experimental Protocol}: We designed a controlled experiment to isolate the impact of reinforcement learning. First, we use the LLM to generate an initial scheduler for each workload, measuring its baseline performance. Then, we enable the RL component to run 100 optimization episodes, where each episode involves: (1) adjusting scheduler parameters or code based on the current policy, (2) running the modified scheduler on the target workload, (3) computing rewards based on performance metrics, and (4) updating the policy using PPO. We measure performance improvements at 10-episode intervals to understand convergence behavior. The reward function balances multiple objectives including primary performance metrics (latency or throughput), stability (variance in performance), and resource efficiency (CPU overhead).
@@ -92,12 +104,12 @@ While LLMs excel at generating reasonable initial implementations based on their
 \label{fig:rl-improvement}
 \begin{verbatim}
 Performance Gain (%)
-25 |                                    ████
-20 |                              ████████
-15 |                        ████████
-10 |                  ████████
- 5 |            ████████
- 0 |      ████████
+25 |                                    ****
+20 |                              ********
+15 |                        ********
+10 |                  ********
+ 5 |            ********
+ 0 |      ********
    +------+------+------+------+------+
    0     20     40     60     80    100
               RL Episodes
@@ -150,7 +162,7 @@ The agent's workload analysis revealed key patterns that informed its optimizati
 
 The generated scheduler implemented targeted optimizations for latency reduction. First, it reduced scheduler tick frequency from the default 250Hz to 100Hz, minimizing interruption of running tasks while still maintaining system responsiveness. Second, it implemented strong CPU affinity for hot threads, ensuring that tasks wake on CPUs where their data remains cache-warm. Third, and most impactfully, it added aggressive priority boosting for waking tasks, allowing them to preempt running tasks immediately rather than waiting for the next scheduling quantum.
 
-These optimizations achieved a 50\% reduction in p99 latency, from 14.2ms to 7.1ms. The improvement comes primarily from reduced wake-to-run latency (average 45μs vs 180μs for CFS) and better cache utilization through affinity. Interestingly, the agent maintained fairness for long-running background tasks through a decay mechanism that gradually reduces priority boost over time, showing sophisticated understanding of the trade-offs involved in latency optimization.
+These optimizations achieved a 50\% reduction in p99 latency, from 14.2ms to 7.1ms. The improvement comes primarily from reduced wake-to-run latency (average 45$\mu$s vs 180$\mu$s for CFS) and better cache utilization through affinity. Interestingly, the agent maintained fairness for long-running background tasks through a decay mechanism that gradually reduces priority boost over time, showing sophisticated understanding of the trade-offs involved in latency optimization.
 
 \subsection{Ablation Studies}
 
@@ -180,7 +192,7 @@ LLM Only (no framework) & 52\% & -48\% \\
 \subsection{Scalability and Overhead}
 
 \subsubsection{Runtime Overhead}
-A critical concern for any scheduler framework is the overhead it introduces. Our measurements demonstrate that the AI-driven optimization framework adds negligible overhead to the runtime system. Scheduler switching completes in under 100 microseconds, including state migration and cache warming—fast enough to enable dynamic scheduler changes in response to workload phases. The monitoring infrastructure, despite collecting comprehensive metrics, consumes less than 0.1\% CPU through efficient eBPF-based collection and batched processing. Most importantly, there is zero overhead in the scheduling critical path—once deployed, AI-generated schedulers run as native BPF code with identical performance characteristics to hand-written schedulers. Memory usage ranges from 50MB for simple workloads to 200MB for complex scenarios with many concurrent tasks, primarily for maintaining scheduling history and task metadata. This low overhead ensures that performance gains from better scheduling decisions are not offset by framework costs.
+A critical concern for any scheduler framework is the overhead it introduces. Our measurements demonstrate that the AI-driven optimization framework adds negligible overhead to the runtime system. Scheduler switching completes in under 100$\mu$s, including state migration and cache warming—fast enough to enable dynamic scheduler changes in response to workload phases. The monitoring infrastructure, despite collecting comprehensive metrics, consumes less than 0.1\% CPU through efficient eBPF-based collection and batched processing. Most importantly, there is zero overhead in the scheduling critical path—once deployed, AI-generated schedulers run as native BPF code with identical performance characteristics to hand-written schedulers. Memory usage ranges from 50MB for simple workloads to 200MB for complex scenarios with many concurrent tasks, primarily for maintaining scheduling history and task metadata. This low overhead ensures that performance gains from better scheduling decisions are not offset by framework costs.
 
 \subsubsection{Scalability Tests}
 We extensively tested our system's scalability across diverse hardware configurations to ensure production readiness. The framework successfully operates on systems ranging from 4-core edge devices to 256-core server platforms. On large systems, we observe linear performance scaling for embarrassingly parallel workloads, demonstrating that our schedulers efficiently utilize available hardware. The AI-generated schedulers show sophisticated NUMA awareness on multi-socket systems, automatically detecting topology and optimizing task placement to minimize cross-socket communication. Stress testing with over 10,000 concurrent tasks reveals no performance degradation—the scheduler data structures and algorithms scale efficiently with task count. We also tested exotic configurations including systems with heterogeneous core types (big.LITTLE), achieving appropriate task distribution based on core capabilities. These results confirm that our AI-driven approach can handle the full spectrum of modern hardware architectures without manual tuning.

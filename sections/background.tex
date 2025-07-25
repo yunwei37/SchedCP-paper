@@ -26,6 +26,18 @@ Modern computing infrastructure faces unprecedented scheduling challenges that t
 
 The heterogeneity of modern workloads further complicates scheduling. A single machine might simultaneously run latency-critical web services requiring microsecond-level response times, batch processing jobs optimizing for throughput, and machine learning workloads alternating between compute-intensive and communication-intensive phases. Static scheduling policies cannot adapt to these dynamic requirements, leading to suboptimal performance and resource utilization. Studies show that many HPC centers achieve less than 50\% utilization due to conservative scheduling policies~\cite{feitelson2023utilization}, while cloud providers report similar inefficiencies in resource allocation.
 
+\subsubsection{Emerging Workload Types}
+
+The computing landscape has evolved dramatically with the rise of new workload paradigms. Machine learning and AI workloads present unique challenges with their alternating phases of compute-intensive training and memory-bound inference. These workloads often exhibit bursty behavior and require careful coordination between CPU and accelerator scheduling. Serverless and Function-as-a-Service platforms introduce extreme dynamism, with functions executing for milliseconds to seconds and requiring rapid cold-start optimization.
+
+Microservices architectures decompose applications into hundreds of interconnected services, each with distinct performance requirements and complex communication patterns. This creates scheduling challenges around tail latency optimization and resource isolation. Batch processing systems have also evolved, now handling jobs ranging from seconds to days with varying resource requirements and deadline constraints. Traditional schedulers struggle to optimize across this diversity, often resulting in conservative resource allocation that leaves significant performance on the table.
+
+\subsubsection{Performance Requirements}
+
+Different application classes impose fundamentally different requirements on the scheduler. Latency-sensitive applications like web services and databases require predictable, low-latency scheduling decisions, often needing response times under 100 microseconds. These workloads benefit from dedicated CPU resources and minimal context switching. In contrast, throughput-oriented workloads such as batch processing and analytics jobs can tolerate higher latencies but require efficient resource utilization and fair sharing across multiple jobs.
+
+Resource-efficient scheduling becomes critical in edge computing and IoT environments where power consumption and thermal constraints dominate. These systems need schedulers that can dynamically adjust performance based on available resources and environmental conditions. Application-specific workloads like build systems and testing suites present unique optimization opportunities—for instance, prioritizing compilation tasks based on dependency graphs can significantly reduce build times. The diversity of these requirements underscores the need for adaptive scheduling approaches that can be tailored to specific workload characteristics.
+
 \subsection{AI/ML in Systems Optimization}
 
 \subsubsection{Reinforcement Learning for OS}
