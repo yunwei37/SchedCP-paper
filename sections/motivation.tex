@@ -10,6 +10,14 @@ The problem worsens for edge computing and personal devices with vast gaps betwe
 
 LLM agents can bridge this gap. They understand workload patterns from high-level descriptions, translating intent into concrete scheduling policies. By democratizing expert-level optimization, AI agents let any user—cloud operators to gamers—achieve performance previously limited to kernel experts.
 
+\subsubsection{Workload Diversity and Infrastructure Challenges}
+
+Modern infrastructure faces unprecedented scheduling challenges from workload heterogeneity. One machine might run latency-critical web services needing microsecond responses, throughput-optimized batch jobs, and ML workloads alternating between compute and communication phases. Static policies can't adapt to these dynamic needs, causing poor performance and utilization. Studies show many HPC centers achieve <50\% utilization from conservative scheduling~\cite{feitelson2023utilization}, with clouds reporting similar inefficiencies.
+
+Computing evolved dramatically with new workload paradigms. ML/AI workloads present unique challenges with alternating compute-intensive training and memory-bound inference phases, showing bursty behavior needing careful CPU-accelerator scheduling coordination. Serverless/FaaS platforms introduce extreme dynamism with millisecond-to-second function execution requiring rapid cold-start optimization. Microservices decompose apps into hundreds of interconnected services with distinct performance needs and complex communication patterns, creating challenges for tail latency and resource isolation.
+
+Different app classes need fundamentally different scheduling strategies. Latency-sensitive apps (web services, databases) need predictable, low-latency scheduling, often <100 microseconds response times, benefiting from dedicated CPUs and minimal context switching. Throughput-oriented workloads (batch processing, analytics) tolerate higher latencies but need efficient utilization and fair sharing across jobs. Resource-efficient scheduling is critical in edge/IoT environments dominated by power and thermal constraints. App-specific workloads like build systems offer unique optimizations—prioritizing compilation by dependency graphs significantly reduces build times. This diversity requires adaptive scheduling tailored to specific workload characteristics.
+
 \subsubsection{Technical Complexity of Scheduler Development}
 
 Linux scheduler development requires mastering multiple complex domains few developers have. Kernel programming needs understanding of concurrency primitives, lock-free data structures, and subtle kernel subsystem interactions. BPF adds complexity with verification requirements, limited instructions, and memory access restrictions. Developers must understand CPU architectures, cache hierarchies, NUMA topologies, and how scheduling impacts performance across hardware.
