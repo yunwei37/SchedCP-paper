@@ -1,0 +1,65 @@
+\section{Background}
+
+\subsection{Evolution of Linux Schedulers}
+
+\subsubsection{Traditional Linux Schedulers}
+
+Linux's scheduling subsystem evolved significantly over decades. CFS (Completely Fair Scheduler), introduced in Linux 2.6.23, is the current default and aims for "ideal, precise multi-tasking" for all runnable tasks~\cite{wong2008cfs}. CFS models an ideal processor running multiple tasks simultaneously with equal processor time shares. On real hardware, CFS uses a red-black tree of runnable tasks sorted by "virtual runtime," scheduling tasks with least CPU time first.
+
+Linux also provides real-time scheduling classes (SCHED\_FIFO and SCHED\_RR) offering deterministic behavior for time-critical apps. These use fixed priorities and preempt normal tasks, suiting embedded and real-time systems. But all traditional schedulers share a key limitation: they implement one-size-fits-all policies that can't adapt to specific app requirements or workload characteristics. This inflexibility is increasingly problematic as modern systems host diverse workloads from latency-sensitive web services to throughput-oriented batch jobs.
+
+\subsubsection{sched\_ext (Scheduler Extensions)}
+
+sched\_ext in Linux 6.12 marks a paradigm shift in kernel scheduler development~\cite{schedext2024}. This framework lets developers implement custom schedulers as BPF programs dynamically loaded into the kernel without modifications or reboots. For the first time in Linux history, scheduler development can proceed at user-space speed while maintaining kernel-level performance and safety.
+
+sched\_ext provides comprehensive callbacks for BPF schedulers to control all scheduling aspects: task enqueueing, CPU selection, load balancing, and idle CPU management. The framework ensures production readiness with minimal overhead (typically <1\% in real workloads) while providing safety through BPF verification. This flexibility, safety, and performance combination makes sched\_ext ideal for experimenting with novel scheduling algorithms, including AI-generated ones.
+
+\subsubsection{eBPF Technology}
+
+eBPF evolved from packet filtering into a general-purpose in-kernel VM enabling safe execution of user programs in kernel space~\cite{mccanne1993bpf,gregg2019bpf}. The eBPF verifier does extensive static analysis ensuring programs can't crash the kernel, access invalid memory, or enter infinite loops. Verification examines all execution paths and enforces strict bounds on loops and memory access.
+
+JIT compilation of eBPF bytecode to native instructions ensures near-native performance, making eBPF suitable for performance-critical paths like scheduling. eBPF already transformed networking, tracing, and security subsystems. Its application to scheduling via sched\_ext brings programmability and safety benefits to schedulers. The rich eBPF ecosystem (bpftool, libbpf, tracing utilities) provides a mature foundation for developing and debugging schedulers.
+
+\subsubsection{Infrastructure Challenges}
+
+Modern infrastructure faces unprecedented scheduling challenges beyond traditional approaches. In clouds, the gap between admins configuring schedulers and developers understanding workload requirements creates a knowledge gap. Admins must optimize diverse workloads without deep app understanding, while developers lack kernel expertise to influence scheduling.
+
+Workload heterogeneity complicates scheduling further. One machine might run latency-critical web services needing microsecond responses, throughput-optimized batch jobs, and ML workloads alternating between compute and communication phases. Static policies can't adapt to these dynamic needs, causing poor performance and utilization. Studies show many HPC centers achieve <50\% utilization from conservative scheduling~\cite{feitelson2023utilization}, with clouds reporting similar inefficiencies.
+
+\subsubsection{Emerging Workload Types}
+
+Computing evolved dramatically with new workload paradigms. ML/AI workloads present unique challenges with alternating compute-intensive training and memory-bound inference phases. They show bursty behavior needing careful CPU-accelerator scheduling coordination. Serverless/FaaS platforms introduce extreme dynamism with millisecond-to-second function execution requiring rapid cold-start optimization.
+
+Microservices decompose apps into hundreds of interconnected services with distinct performance needs and complex communication patterns, creating challenges for tail latency and resource isolation. Batch systems evolved to handle jobs from seconds to days with varying resources and deadlines. Traditional schedulers struggle with this diversity, often using conservative allocation that wastes performance.
+
+\subsubsection{Performance Requirements}
+
+Different app classes need different scheduling. Latency-sensitive apps (web services, databases) need predictable, low-latency scheduling, often <100 microseconds response times. They benefit from dedicated CPUs and minimal context switching. Throughput-oriented workloads (batch processing, analytics) tolerate higher latencies but need efficient utilization and fair sharing across jobs.
+
+Resource-efficient scheduling is critical in edge/IoT environments dominated by power and thermal constraints. These need schedulers dynamically adjusting performance based on resources and conditions. App-specific workloads like build systems offer unique optimizations—e.g., prioritizing compilation by dependency graphs significantly reduces build times. This diversity requires adaptive scheduling tailored to specific workload characteristics.
+
+\subsection{AI/ML in Systems Optimization}
+
+\subsubsection{Reinforcement Learning for OS}
+
+RL for OS optimization gained momentum with several successes showing learned policies' potential. Decima~\cite{mao2019decima} (SIGCOMM 2019) pioneered graph neural networks for datacenter job scheduling, optimizing completion times by considering task dependencies. It improved average job completion time up to 40\% over traditional heuristics.
+
+Firm~\cite{qiu2020firm} (OSDI 2020) extended RL to multi-resource cluster management with fairness constraints. Modeling clusters as multi-agent systems, Firm learns policies balancing efficiency and fairness. Park~\cite{mao2019park} provides a platform for applying RL to various systems problems, showing the approach's generality.
+
+But RL systems face key limitations motivating our work. First, they need extensive training per workload/environment, often millions of decisions to converge. Second, they can't leverage domain knowledge or understand app semantics—they work purely on statistical patterns. Third, learned policies are black boxes with no decision explanations, hindering debugging and trust. Most critically, they miss optimizations needing semantic understanding, like prioritizing compilation tasks by dependency analysis.
+
+\subsubsection{LLMs for Code Generation}
+
+LLMs revolutionized code synthesis. Systems like Codex~\cite{chen2021codex} (GitHub Copilot), GPT-4~\cite{openai2023gpt4}, and Claude~\cite{anthropic2024claude} generate complex systems code from natural language. Trained on vast corpora of documentation, code, and technical discussions, they deeply understand programming patterns and system design.
+
+Recent evaluations show LLMs successfully generate various systems code, from device drivers to network protocols. Their context understanding and learned patterns suit tasks needing domain knowledge, like implementing scheduling policies for specific workloads. Unlike traditional synthesis needing formal specs, LLMs work from informal descriptions and examples, making them accessible to non-experts.
+
+Key LLM capabilities for scheduler generation: understanding natural language performance requirements, generating correct systems code, reasoning about performance trade-offs and optimizations, learning from documentation and code examples. These capabilities address RL's limitations, suggesting LLM-RL combination could yield superior results.
+
+\subsubsection{AI Agents and Autonomous Systems}
+
+2024 marked an inflection point with fully autonomous coding agents that understand requirements, generate code, test implementations, and iterate on feedback. Claude Code exemplifies this generation, autonomously developing complex software with minimal human intervention. These agents go beyond code completion to genuine software engineering: design, implementation, debugging, and optimization.
+
+GitHub Copilot Workspace extends to repository-wide changes, letting AI understand entire codebases and make coordinated multi-file modifications. Devin shows end-to-end software engineering from requirements through deployment. These systems combine natural language understanding, code generation, test synthesis, and error correction into cohesive agents tackling complex programming tasks.
+
+Evolution from code completion to autonomous agents opens unprecedented system optimization opportunities. Unlike tools assisting humans, these agents work continuously optimizing systems, explore design spaces humans might miss, and accumulate knowledge across optimization tasks. Understanding both high-level requirements and low-level implementation makes them ideal for bridging the semantic gap in scheduler optimization plaguing traditional approaches.
