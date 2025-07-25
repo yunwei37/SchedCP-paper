@@ -1,34 +1,314 @@
-\section{\sys{} System Design}
+\section{System Design}
 
-Figure 1 illustrates the \sys{} architecture. The core is an LLM-based agent that synthesizes a scheduler policy, aided by an RL loop for optimization. The process proceeds in two phases:
+\subsection{Design Philosophy and Constraints}
 
+Our system is built on the understanding that AI agents are fundamentally context engineering systems—they need sufficient information to make decisions but not so much that costs become prohibitive. This mirrors how human experts approach optimization: using the right tools to collect profiling data and implementing programmable policies with appropriate frameworks. As system researchers, our goal is not to design better AI agents, but to design better systems and interfaces that can be effectively used by AI agents.
+
+\subsubsection{Decoupling and Role Separation}
+\textbf{Principle}: Separate ``what to optimize'' (AI problem) from ``how to observe and act'' (system problem).
+
+We treat AI agents as performance engineers, establishing clear interface boundaries:
 \begin{itemize}
-\item \emph{Phase I: LLM Policy Generation.} The user provides a workload description (e.g. a DAG of tasks, resource profiles, and goals) as input to the LLM prompt. The LLM, guided by a system prompt and possibly example demonstrations, outputs a candidate scheduling policy in our DSL. For instance, the LLM might propose: ``Use HEFT for this DAG, prioritizing longest-path tasks; assign highest CPU jobs to CPU-rich nodes; insert backfilling with priority to I/O-bound jobs.'' In practice, the output is formal DSL code (see below). The DSL we design includes constructs for defining job priorities, resource assignments, backfill rules, and preemption heuristics. This design draws inspiration from prior scheduler DSLs (e.g. Bossa DSL for Linux scheduling and recent RL scheduling frameworks with DSLs). By outputting DSL, the LLM avoids low-level bugs and encodes high-level logic. An excerpt might look like:
+\item \textbf{AI Responsibilities}: Understand workload patterns, identify optimization opportunities, generate scheduling strategies
+\item \textbf{System Responsibilities}: Provide observations, execute actions safely, enforce constraints
+\item \textbf{Evolution-Ready Design}: Future AI models can leverage the same interfaces without system redesign
+\end{itemize}
 
+This separation ensures that as AI capabilities improve, the system naturally benefits without architectural changes.
+
+\subsubsection{Context and Feedback Balance}
+\textbf{Principle}: Provide sufficient context for good decisions while controlling costs.
+
+AI agents face a fundamental trade-off between information completeness and token costs:
+\begin{itemize}
+\item \textbf{Adaptive Context Window}: Start with minimal context for simple decisions, progressively add detail for complex scenarios
+\item \textbf{Learned Relevance}: Track which context matters for which workload types
+\item \textbf{Feedback Integration}: Add previous results to context for improved future decisions
+\item \textbf{Cost-Aware APIs}: Expose controls for information granularity based on decision importance
+\end{itemize}
+
+\subsubsection{Composable Tool Architecture}
+\textbf{Principle}: Leverage LLM code generation abilities through programmable, composable tools.
+
+Following Unix philosophy, we provide:
+\begin{itemize}
+\item \textbf{Atomic Tools}: Basic operations like \texttt{get\_cpu\_stats()}, \texttt{set\_scheduler\_param()}
+\item \textbf{Compositional Tools}: Complex workflows built from atomic operations
+\item \textbf{Dynamic Tool Chains}: AI can create new tool combinations for novel scenarios
+\item \textbf{Generated Tools}: AI writes custom analysis scripts on demand
+\end{itemize}
+
+Example tool composition:
 \begin{verbatim}
-policy {
-    tasks: all_ready_tasks;
-    priorities: {
-        if (task.type == "IO") then priority += 10;
-        if (task.critical_path_length > threshold) 
-        then priority += 5;
-    }
-    assign: round_robin_on_idle_CPUs;
-    backfill: enable_if(highest_load < X%);
+# Atomic tools
+stats = get_cpu_stats()
+set_scheduler_param("priority_boost", 5)
+
+# Composed tool
+def profile_workload():
+    stats = []
+    for phase in workload_phases:
+        stats.append(get_cpu_stats())
+        analyze_pattern(stats)
+    return optimization_strategy(stats)
+
+# AI-generated tool
+def custom_analysis():
+    # AI writes this based on specific needs
+    if detect_compilation_pattern():
+        prioritize_by_dependency_graph()
+\end{verbatim}
+
+\subsubsection{Safety-First Interface Design}
+\textbf{Core Principle}: Treat AI as a potentially non-cautious actor requiring defensive interfaces.
+
+\textbf{Defensive API Design}:
+\begin{itemize}
+\item No single API call can crash the system
+\item All operations have built-in bounds and limits
+\item Example: \texttt{set\_cpu\_limit()} has hard max of 95\% to prevent starvation
+\end{itemize}
+
+\textbf{Staged Execution with Validation}:
+\begin{itemize}
+\item Preview mode shows effects before execution
+\item Dry-run capabilities for all destructive operations
+\item Mandatory validation between generation and deployment
+\end{itemize}
+
+\textbf{Constrained Action Space}:
+\begin{itemize}
+\item Whitelist allowed operations, not blacklist dangerous ones
+\item Graduated permissions based on success history
+\item New agents limited to 20\% parameter variations initially
+\end{itemize}
+
+\textbf{Automatic Safety Rails}:
+\begin{itemize}
+\item System-enforced resource limits
+\item Circuit breakers for performance degradation
+\item Watchdog timers for all AI operations
+\item Clear audit trails for debugging
+\end{itemize}
+
+\subsection{Core System Components}
+
+\subsubsection{Multi-Layer RL LLM Agent}
+Our agent architecture consists of three specialized layers working in concert:
+
+\textbf{Decision Layer}:
+\begin{itemize}
+\item Analyzes workload descriptions and system state
+\item Selects high-level strategy: configure existing, modify, or create new scheduler
+\item Reasons about trade-offs between different approaches
+\end{itemize}
+
+\textbf{Implementation Layer}:
+\begin{itemize}
+\item Translates decisions into concrete code or configurations
+\item Generates eBPF C code and Rust userspace components
+\item Ensures code follows sched\_ext conventions and safety requirements
+\end{itemize}
+
+\textbf{Learning Layer}:
+\begin{itemize}
+\item Applies reinforcement learning from performance feedback
+\item Updates strategy selection based on outcomes
+\item Maintains context memory for future decisions
+\end{itemize}
+
+\subsubsection{AI-Managed Scheduler Library}
+The scheduler library serves as institutional memory and reusable component repository:
+
+\textbf{Library Entry Structure}:
+\begin{itemize}
+\item \textbf{Description}: Natural language summary of purpose and characteristics
+\item \textbf{Configuration Parameters}: Well-defined tunables with ranges and defaults
+\item \textbf{Source Code}: Complete eBPF and userspace implementation
+\item \textbf{Performance History}: Metrics from previous deployments
+\item \textbf{Test Results}: Verification status and benchmark scores
+\end{itemize}
+
+\textbf{Example Entry}:
+\begin{verbatim}
+{
+  "name": "scx_compilation_aware",
+  "description": "Optimizes for software builds by prioritizing 
+                  tasks based on dependency depth",
+  "parameters": {
+    "boost_factor": {"default": 2.0, "range": [1.0, 5.0]},
+    "dep_threshold": {"default": 3, "range": [1, 10]}
+  },
+  "performance": {
+    "kernel_build": {"speedup": 1.8, "samples": 50},
+    "make_world": {"speedup": 1.5, "samples": 20}
+  },
+  "source": "path/to/scheduler.bpf.c"
 }
 \end{verbatim}
 
-\item \emph{Phase II: RL-Based Refinement.} The synthesized policy is instantiated in a simulation environment that models the target system. We employ a fast, event-driven scheduling simulator (e.g., a modified version of \emph{DRAS-CQSim}) seeded with real job traces or synthetic workloads. An RL agent (e.g. Proximal Policy Optimization) is then tasked with \emph{tuning} numerical parameters or picking among policy variants. For example, the LLM might leave some constants (thresholds, weights) unspecified or output multiple strategies; the RL agent explores these via interactions: it applies actions like ``set weight=2 for IO priority'' or ``enable adaptive backfill'', observes simulated makespan and wait times, and obtains a reward (e.g. negative weighted sum of makespan and unfairness). Over successive episodes, the RL agent adjusts the policy to optimize the objective. Because the LLM's output already encodes good heuristics, the RL search is over a much smaller space than beginning from scratch. This idea of \emph{generative initialization plus RL tuning} has proven effective in other domains.
+\subsubsection{Static Analysis \& Testing Framework}
+Safety-critical validation before any scheduler deployment:
+
+\textbf{BPF Verification Pipeline}:
+\begin{itemize}
+\item Pre-validate against kernel verifier rules
+\item Check for common pitfalls (infinite loops, invalid memory access)
+\item Estimate verification complexity to avoid timeouts
 \end{itemize}
 
-\emph{Key Idea \& Observation.} The hybrid approach leverages the LLM's semantic reasoning and the RL's empirical optimization. The LLM agent embeds expert knowledge (e.g. ``IO-bound tasks should not block CPU jobs'') and can rapidly produce a schedule sketch. Then RL fine-tunes continuous parameters and addresses nuances (e.g. the exact preemption interval). This synergy addresses two key challenges of scheduling: the combinatorial policy design (handled by LLM) and the noisy feedback loop (handled by RL).
+\textbf{Performance Estimation}:
+\begin{itemize}
+\item Static analysis of scheduler overhead
+\item Instruction count and branch complexity metrics
+\item Cache behavior prediction
+\end{itemize}
 
-\emph{Scheduling DSL.} We emphasize the DSL's role. The DSL provides a structured interface between the LLM output and the scheduler implementation. It defines the search space for the agent: only syntactically valid scheduling policies can be generated. Users (or a developer) design the DSL to capture typical scheduling primitives: task queues, priority functions, resource assignment rules, and so on. Because LLMs are good at learning programming-like patterns, this DSL approach greatly simplifies the agent's job. The DSL is compiled or interpreted by a runtime library that interfaces with the simulated or real scheduling environment. For example, a rule like \texttt{prioritize(tasks, by="length", weight=3)} in DSL would translate to C++ or Python code invoked at scheduling time. This was similarly done in an LLM-based mapper generator: Wei \emph{et al.} use a DSL to abstract scheduling code, letting the LLM output high-level mapper strategies.
+\textbf{Automated Testing}:
+\begin{itemize}
+\item Unit tests for individual scheduler functions
+\item Integration tests with simulated workloads
+\item Stress tests for edge cases and error conditions
+\end{itemize}
 
-\emph{Workload Analysis Pre-Run.} A crucial advantage of using an LLM agent is \emph{proactive} workload analysis. Before execution, the LLM can infer workload characteristics from code or descriptions (e.g., ``this is a convolutional neural network training job with short linear algebra tasks and bursty gradient sync'', or ``this pipeline has stage latencies [X,Y,Z]''). It then selects scheduling features (e.g., CPU vs GPU assignment, streaming pipeline priorities). This is akin to ``compiler scheduling'' but done dynamically and adaptively per run. We leverage this to handle heterogeneous task types: for instance, tasks tagged as I/O-intensive get a different policy than compute-bound tasks, automatically inferred by the agent.
+\subsubsection{Scheduler Optimization Libraries}
+Pre-built patterns and primitives for rapid scheduler development:
 
-\emph{Target System Architecture.} \sys{} is implemented as a \emph{user-level scheduling framework}. It could be integrated into task-based runtimes (e.g. StarPU, Legion, or a container orchestration stack) or as a stand-alone auto-tuning daemon. In our prototype, we simulate a cluster with a custom scheduler backend. In practice, \sys{} would translate DSL policies into calls to the runtime (e.g. hooking into Legion's scheduler or into Kubernetes via a scheduler plugin). This design parallels work like AIOS, which envisions an LLM-aware OS kernel with an ``Agent Scheduler'' module~\cite{arxiv2403}; here, the ``LLM kernel'' would include our policy generator and an RL trainer. Unlike in-kernel schedulers, our user-level approach imposes no kernel modifications and can be adopted incrementally on top of existing systems.
+\textbf{Production Scheduler Collection}:
+\begin{itemize}
+\item \texttt{scx\_rusty}: Work-stealing scheduler with load balancing
+\item \texttt{scx\_layered}: Hierarchical scheduling with cgroup awareness
+\item \texttt{scx\_central}: Centralized queue scheduler for NUMA systems
+\end{itemize}
 
-\emph{Generalization and Adaptivity.} By design, \sys{} aims to work \emph{out-of-the-box} on new workloads. The LLM is never retrained per-workload; it relies on its pretraining to handle novel tasks. During testing, we shuffle in completely unseen job mixes and hardware setups. The RL component too can be meta-trained on a variety of job traces, then quickly adapt online. Prior work has shown that RL schedulers can generalize when properly designed, and LLMs further enhance this by transferring knowledge. For example, READYS demonstrated RL generalization to new DAGs, and our LLM agent should improve on that by reasoning at a higher level.
+\textbf{Algorithm Primitives}:
+\begin{itemize}
+\item FIFO, LIFO, priority queue implementations
+\item CFS-style virtual runtime tracking
+\item Work-stealing and migration policies
+\item CPU affinity and NUMA awareness patterns
+\end{itemize}
 
-In summary, \sys{}'s architecture synthesizes scheduling policies via LLM-generated DSL code, with RL tuning in the loop. This fulfills the need for automated, workload-aware scheduling that overcomes the limitations of static heuristics and pure RL methods.
+\textbf{Smart Retrieval}:
+\begin{itemize}
+\item Semantic search using workload descriptions
+\item Performance-based ranking from historical data
+\item Automatic pattern extraction from successful schedulers
+\end{itemize}
+
+\subsubsection{Profiling \& Monitoring Toolkit}
+Comprehensive workload analysis and system observability:
+
+\textbf{Workload Profiling}:
+\begin{itemize}
+\item CPU usage patterns and phase detection
+\item Memory access patterns and working set sizes
+\item I/O behavior and syscall frequencies
+\item Task creation rates and lifetimes
+\end{itemize}
+
+\textbf{Real-time Monitoring}:
+\begin{itemize}
+\item Scheduler decision latencies
+\item Queue depths and wait times
+\item CPU utilization and idle statistics
+\item Context switch rates and migration counts
+\end{itemize}
+
+\textbf{Low-overhead Implementation}:
+\begin{itemize}
+\item eBPF probes for zero-copy data collection
+\item Hardware performance counters
+\item Aggregation in kernel space to reduce overhead
+\end{itemize}
+
+\subsubsection{Unified Agent Extension Framework}
+Standardized interface enabling any AI agent to optimize schedulers:
+
+\textbf{Model Context Protocol (MCP) Server}:
+\begin{itemize}
+\item RESTful API for workload submission and scheduler retrieval
+\item Streaming interface for real-time monitoring data
+\item Standardized response formats across different AI models
+\end{itemize}
+
+\textbf{Tool Library}:
+\begin{itemize}
+\item Atomic operations exposed as individual endpoints
+\item Composite workflows as higher-level abstractions
+\item Custom tool registration for agent-specific needs
+\end{itemize}
+
+\textbf{Safety Governance}:
+\begin{itemize}
+\item Role-based access control for different operations
+\item Rate limiting to prevent resource exhaustion
+\item Audit logging for all AI actions
+\item Resource quotas per agent instance
+\end{itemize}
+
+\subsection{RL Algorithm Suite}
+
+\subsubsection{In-Context Learning}
+Leverages LLM's ability to learn from examples within the prompt:
+\begin{itemize}
+\item Performance feedback added to agent context
+\item Successful scheduler examples included as references
+\item Failed attempts with explanations for learning
+\end{itemize}
+
+\subsubsection{Bayesian Optimization}
+Efficient parameter tuning with uncertainty quantification:
+\begin{itemize}
+\item Gaussian process models for parameter-performance relationships
+\item Acquisition functions balancing exploration and exploitation
+\item Automatic hyperparameter selection
+\end{itemize}
+
+\subsubsection{Multi-Armed Bandits}
+Scheduler selection under uncertainty:
+\begin{itemize}
+\item Thompson sampling for probabilistic selection
+\item Upper confidence bounds for optimistic exploration
+\item Contextual bandits using workload features
+\end{itemize}
+
+\subsubsection{Workload Pattern Learning}
+Detect and adapt to changing workload phases:
+\begin{itemize}
+\item Hidden Markov models for phase detection
+\item Change point detection algorithms
+\item Online clustering of workload behaviors
+\end{itemize}
+
+\subsection{Self-Evolution Process}
+
+The system continuously improves through experience:
+
+\textbf{1. Experience Collection}:
+\begin{itemize}
+\item Every scheduler execution generates performance data
+\item Workload characteristics linked to scheduler effectiveness
+\item Failed attempts analyzed for root causes
+\end{itemize}
+
+\textbf{2. Pattern Extraction}:
+\begin{itemize}
+\item Successful optimizations become library patterns
+\item Common failure modes identified and avoided
+\item Cross-workload generalizations discovered
+\end{itemize}
+
+\textbf{3. Library Evolution}:
+\begin{itemize}
+\item New schedulers added when existing ones insufficient
+\item Underperforming schedulers deprecated
+\item Hybrid schedulers created from successful components
+\end{itemize}
+
+\textbf{4. Knowledge Transfer}:
+\begin{itemize}
+\item Lessons from one workload type applied to similar ones
+\item Architecture-specific optimizations shared across schedulers
+\item Meta-strategies emerge from accumulated experience
+\end{itemize}

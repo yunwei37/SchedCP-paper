@@ -102,7 +102,7 @@
 %%
 %% The "title" command has an optional parameter,
 %% allowing the author to define a "short title" to be used in page headers.
-\title{Sched‑Agent: LLM Agent–Guided Dynamic Scheduler Optimization}
+\title{AI-Powered Dynamic Operating System Optimization with LLM Agents: A Framework for Self-Evolving Linux Schedulers}
 
 %%
 %% The "author" command and its associated commands are used to define
@@ -132,7 +132,7 @@
 % \email{larst@affiliation.org}
 
 \begin{abstract}
-  Modern high-performance computing (HPC) workloads and cloud services exhibit highly dynamic and heterogeneous characteristics that defeat one-size-fits-all static schedulers. Manually designing and tuning scheduling policies for each workload is laborious and brittle. We propose \sys{}, an AI-driven framework that automatically generates and configures dynamic schedulers tailored to each workload. Our system leverages a large language model (LLM) as an intelligent agent to analyze workload descriptions and system goals, then emits scheduling policies in a domain-specific language (DSL). These policies are further refined via reinforcement learning (RL) fine-tuning. \sys{} requires no manual expert input or workload-specific training: the LLM's reasoning capability identifies workload patterns and generates executable scheduling strategies. Using diverse benchmarks (HPC kernels, dataflow DAGs, and agent-based workloads), we show that \sys{} consistently outperforms traditional schedulers and RL-only methods, while generalizing across workloads without retraining. Our contributions include (1) a novel agent-based scheduler synthesis framework combining LLM reasoning and RL tuning, (2) a scheduling DSL bridging LLM output and system execution, and (3) a comprehensive evaluation demonstrating improved makespan, utilization, and fairness across varied workloads.
+Operating system schedulers face a fundamental challenge: kernel policies cannot understand what applications need. This semantic gap leads to suboptimal performance across modern computing infrastructure. Recent advances in Large Language Model (LLM) agents present an unprecedented opportunity to bridge this gap. We present the first framework for using fully automatic LLM agents to dynamically optimize Linux schedulers. Our framework enables AI agents to select, configure, modify, or generate entirely new scheduling algorithms tailored to specific workloads. Built on the production-ready sched\_ext infrastructure, our system maintains a self-evolving library of schedulers that grows and improves through experience. Our design follows four key principles: (1) Decoupling the ``what to optimize'' (AI's domain) from ``how to observe and act'' (system's domain); (2) Context Balance to provide sufficient information for decisions while controlling costs; (3) Composable Tools that leverage LLM code generation capabilities; and (4) Safety-First Design that treats AI as potentially non-cautious actors requiring defensive interfaces. We implement a framework with five core components: static analysis and testing for safe code deployment, scheduler libraries with reusable optimization patterns, reinforcement learning for continuous improvement, profiling tools for workload characterization, and a unified interface enabling any LLM to optimize schedulers. Once generated, schedulers execute as native eBPF code with no LLM overhead in the critical path, achieving up to 80\% speedup for Linux kernel builds and 50\% latency reduction for scheduler benchmarks. Our open-source implementation demonstrates the feasibility of AI-driven OS optimization in production environments.
 \end{abstract}
 
 
@@ -194,6 +194,7 @@
 
 %% Include sections from separate files
 \input{sections/introduction}
+\input{sections/background}
 \input{sections/motivation}
 \input{sections/design}
 \input{sections/implementation}

@@ -1,11 +1,214 @@
-\section{Implementation}
+\section{Key Technical Challenges and Solutions}
 
-We built a prototype of \sys{} using off-the-shelf LLMs (e.g. GPT-4/Gemini) and an RL toolkit (OpenAI Gym and Stable Baselines3). The DSL is implemented as a small Python-embedded language: users (or the agent) write policy rules in a YAML-like syntax, which are loaded into the scheduler. Our DSL supports: (1) \emph{priority rules} (conditional statements adjusting task priority), (2) \emph{resource assignments} (e.g. pin GPU-only tasks to GPUs), (3) \emph{backfill strategies} (enable/disable, with thresholds), and (4) \emph{preemption and promotion rules} for latency-sensitive tasks. The DSL is strongly typed to avoid invalid policies.
+\subsection{Code Generation Efficiency}
 
-The agent-system interface follows the pattern of Wei \emph{et al.}. The LLM agent prompt includes a description of the DSL grammar and several annotated examples of policies for common cases. When invoked, the agent outputs a policy in plain text which our parser turns into an internal policy object. We experimented with \emph{ReAct-style prompting} to have the LLM produce reasoning steps along with final policy lines, which improved policy quality and interpretability.
+\subsubsection{Challenge}
+How can LLM agents estimate program execution time and performance characteristics from code alone? Our experiments showed that AI-generated schedulers often have unexpected performance characteristics due to subtle implementation choices.
 
-For RL training, we extended an event-driven scheduler simulator (modeled after production systems like SLURM) to accept DSL policies as initial policies and let the agent adjust parameters. We defined the state as a summary vector of (pending queue lengths, current resource utilization, job wait times) and the actions as adjusting numeric DSL parameters or toggling rules. The reward is a weighted combination of negative makespan, average wait time, and a fairness penalty. To stabilize training on bursty trace data, we adapted the trajectory filtering technique from RLScheduler and the uncertainty-aware approach from \emph{Cilantro}, allowing the agent to explore safely.
+\subsubsection{Solution}
+We developed a multi-faceted approach combining static and dynamic analysis:
 
-We consider a variety of workload inputs: job traces from real HPC centers (PIK-IPLEX, SDSC [15]), synthetic DAGs (Cholesky, QR) used in READYS, streaming dataflow benchmarks, and LLM inference chains. The system is flexible enough to ingest different descriptors: e.g., a DAG file for task graphs, or a summarized cluster log for batch scheduling.
+\textbf{Profile-Guided Optimization}:
+\begin{itemize}
+\item Maintain performance profiles of common code patterns
+\item Use historical data to predict execution characteristics
+\item Correlate code features (loop depth, data structure choice) with runtime behavior
+\end{itemize}
 
-Finally, \sys{} can operate in online mode: after initial synthesis/tuning, it monitors actual job execution and can re-invoke the agent if patterns change (new job types appear). This enables continuous adaptation. Our prototype thus spans LLM prompting, DSL parsing, simulation, and RL, demonstrating the feasibility of the concept.
+\textbf{Lightweight Static Analysis}:
+\begin{itemize}
+\item Analyze eBPF instruction sequences for complexity estimation
+\item Identify performance anti-patterns (excessive branching, inefficient data structures)
+\item Provide early feedback before expensive runtime testing
+\end{itemize}
+
+\textbf{Incremental Refinement}:
+\begin{itemize}
+\item Start with conservative implementations
+\item Progressively optimize based on profiling data
+\item Use A/B testing to validate improvements
+\end{itemize}
+
+\subsection{Token Consumption Management}
+
+\subsubsection{Challenge}
+Large codebases and system documentation require excessive LLM tokens, making AI-driven optimization prohibitively expensive. Our initial experiments consumed over 200 API calls for a single scheduler.
+
+\subsubsection{Solution}
+We implemented intelligent context management strategies:
+
+\textbf{Hierarchical Code Understanding}:
+\begin{itemize}
+\item Abstract code into high-level summaries for initial decisions
+\item Drill down to implementation details only when necessary
+\item Cache intermediate representations for reuse
+\end{itemize}
+
+\textbf{Focus on Critical Paths}:
+\begin{itemize}
+\item Identify performance-critical sections through profiling
+\item Limit detailed analysis to hot paths
+\item Use heuristics for non-critical code sections
+\end{itemize}
+
+\textbf{Semantic Compression}:
+\begin{itemize}
+\item Extract key patterns and idioms from successful schedulers
+\item Represent complex implementations as parameterized templates
+\item Use domain-specific abstractions to reduce token count
+\end{itemize}
+
+\textbf{Example Token Optimization}:
+\begin{verbatim}
+# Instead of full code:
+// 500+ lines of scheduler implementation
+
+# Use semantic summary:
+{
+  "type": "work_stealing_scheduler",
+  "features": ["numa_aware", "priority_queues"],
+  "critical_params": ["steal_threshold", "migration_cost"],
+  "performance_profile": "low_latency_high_throughput"
+}
+\end{verbatim}
+
+\subsection{Safety Guarantees}
+
+\subsubsection{Challenge}
+Prevent system crashes, performance degradation, and security vulnerabilities from AI-generated code. Kernel-level code errors can have catastrophic consequences.
+
+\subsubsection{Solution}
+We implemented a comprehensive safety framework:
+
+\textbf{Static Analysis Pipeline}:
+\begin{enumerate}
+\item \textbf{Syntax Validation}: Ensure valid C and BPF code
+\item \textbf{BPF Verifier Pre-check}: Simulate kernel verification
+\item \textbf{Resource Bound Analysis}: Check for infinite loops, unbounded memory
+\item \textbf{Security Audit}: Scan for common vulnerabilities
+\end{enumerate}
+
+\textbf{Sandboxed Testing Environment}:
+\begin{itemize}
+\item Isolated VMs for initial scheduler testing
+\item Simulated workloads before real deployment
+\item Performance regression detection
+\item Automatic rollback on failures
+\end{itemize}
+
+\textbf{Gradual Rollout Mechanism}:
+\begin{itemize}
+\item Start with 1\% of workload on new scheduler
+\item Monitor key metrics (latency, throughput, CPU usage)
+\item Progressively increase coverage if metrics improve
+\item Instant rollback on anomaly detection
+\end{itemize}
+
+\textbf{Safety Verification Example}:
+\begin{verbatim}
+def verify_scheduler_safety(scheduler_code):
+    # Static checks
+    if not passes_bpf_verifier(scheduler_code):
+        return False, "BPF verification failed"
+    
+    # Resource bounds
+    if has_unbounded_loops(scheduler_code):
+        return False, "Unbounded loop detected"
+    
+    # Performance estimation
+    overhead = estimate_overhead(scheduler_code)
+    if overhead > MAX_ACCEPTABLE_OVERHEAD:
+        return False, f"Overhead {overhead} exceeds limit"
+    
+    return True, "All safety checks passed"
+\end{verbatim}
+
+\subsection{Performance Validation}
+
+\subsubsection{Challenge}
+Ensure AI-generated schedulers match or exceed human expert performance while maintaining system stability.
+
+\subsubsection{Solution}
+
+\textbf{Multi-Stage Validation}:
+\begin{enumerate}
+\item \textbf{Microbenchmarks}: Test specific scheduler operations
+\item \textbf{Synthetic Workloads}: Controlled stress testing
+\item \textbf{Real Application Testing}: Actual workload performance
+\item \textbf{Production Shadowing}: Run alongside existing scheduler
+\end{enumerate}
+
+\textbf{Performance Metrics Framework}:
+\begin{itemize}
+\item Latency percentiles (p50, p95, p99)
+\item Throughput under various loads
+\item CPU utilization efficiency
+\item Context switch overhead
+\item Cache performance impact
+\end{itemize}
+
+\textbf{Continuous Monitoring}:
+\begin{itemize}
+\item Real-time performance dashboards
+\item Anomaly detection algorithms
+\item Automatic performance reports
+\item Feedback loop to AI agent
+\end{itemize}
+
+\subsection{Integration with Production Systems}
+
+\subsubsection{Challenge}
+Deploy AI-generated schedulers in production environments without disrupting existing workloads or requiring system downtime.
+
+\subsubsection{Solution}
+
+\textbf{Hot-Swappable Scheduler Architecture}:
+\begin{itemize}
+\item Leverage sched\_ext's dynamic loading capabilities
+\item Zero-downtime scheduler transitions
+\item State migration between schedulers
+\item Fallback to default CFS on errors
+\end{itemize}
+
+\textbf{Compatibility Layer}:
+\begin{itemize}
+\item Support existing cgroup hierarchies
+\item Preserve nice values and priorities
+\item Maintain CPU affinity settings
+\item Honor real-time constraints
+\end{itemize}
+
+\textbf{Operational Integration}:
+\begin{itemize}
+\item Logging compatible with existing monitoring
+\item Metrics exported to standard observability stacks
+\item Configuration through familiar interfaces
+\item Documentation generated automatically
+\end{itemize}
+
+\subsection{Implementation Details}
+
+\subsubsection{Technology Stack}
+\begin{itemize}
+\item \textbf{Core Framework}: Python 3.11+ with async support
+\item \textbf{LLM Integration}: OpenAI, Anthropic, and local model APIs
+\item \textbf{BPF Toolchain}: libbpf, bpftool, clang-15+
+\item \textbf{Monitoring}: Prometheus metrics, OpenTelemetry traces
+\item \textbf{Testing}: pytest, sysbench, custom workload generators
+\end{itemize}
+
+\subsubsection{Performance Optimizations}
+\begin{itemize}
+\item \textbf{Caching Layer}: Redis for API responses and analysis results
+\item \textbf{Parallel Processing}: Concurrent scheduler testing
+\item \textbf{Incremental Compilation}: Only rebuild changed components
+\item \textbf{Profile-Guided Optimization}: Use runtime data for code generation
+\end{itemize}
+
+\subsubsection{Deployment Architecture}
+\begin{itemize}
+\item \textbf{Control Plane}: REST API for agent interaction
+\item \textbf{Data Plane}: High-performance metric collection
+\item \textbf{Storage}: Time-series database for historical data
+\item \textbf{Orchestration}: Kubernetes operators for lifecycle management
+\end{itemize}

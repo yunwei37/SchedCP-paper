@@ -1,15 +1,103 @@
 \section{Related Work}
 
-\emph{Batch and Cluster Scheduling:} Traditional HPC schedulers (e.g. Slurm, Torque) use heuristic policies like FCFS with backfilling. These are simple and fast but inflexible. Heterogeneity-aware schedulers like \emph{Gavel} (OSDI'20) recast policies as optimization problems and adapt allocations to hardware differences, but still rely on fixed objectives.
+Our work builds upon and differs from several research areas: reinforcement learning for schedulers, AI applications in systems, and the emerging field of AI agents for software development.
 
-\emph{RL-based Scheduling:} Recent works apply reinforcement learning to scheduling. Decima (SIGMETRICS'17) uses graph neural nets for DAG job scheduling in data centers. RLScheduler (SC'20) learns HPC batch scheduling policies from traces. DRAS (IPDPS'21) introduces a hierarchical deep RL agent for HPC, incorporating HPC-specific features like job reservation and backfilling. These achieve up to ~45\% performance gains over heuristics. MRSch (arXiv'24) uses \emph{multi-objective RL} (direct future prediction) to schedule with multiple resources (CPU, I/O, burst buffer), improving performance by up to 48\%. All these highlight RL's ability to adapt but require extensive training and are specialized per workload. In contrast, \sys{} does not need workload-specific retraining; the LLM jumpstarts the policy.
+\subsection{RL-based Scheduler Optimization}
 
-\emph{Task-based Runtime Scheduling:} Systems like StarPU, Legion, and OpenMP runtimes schedule fine-grained tasks via list scheduling and priorities~\cite{arxiv2404}. INSPIRIT (arXiv'24) improves such schedulers by introducing new task attributes (``inspiring ability/efficiency'') to guide priorities without domain knowledge~\cite{arxiv2404b}. Task scheduling works typically need domain-specific tuning~\cite{arxiv2404c}. \sys{} targets this problem by having the LLM deduce useful priority rules from workload semantics.
+Recent years have seen significant interest in applying reinforcement learning to scheduling problems:
 
-\emph{Multi-Objective and Online Schedulers:} Schedulers that handle multiple goals or online adaptation include Cilantro (OSDI'23), which continuously learns performance-to-resource mappings to meet arbitrary objectives, and RL-based multi-resource schemes. These systems demonstrate the importance of adaptivity; \sys{} aims to incorporate such capabilities via the agent's ability to reconfigure policies online.
+\textbf{Decima}~\cite{mao2019decima} (SIGCOMM'19) pioneered using graph neural networks for datacenter job scheduling, achieving significant improvements in average job completion time. While Decima demonstrates RL's potential, it requires extensive training for each workload type and cannot understand application semantics.
 
-\emph{LLM and Auto-Tuning in Systems:} The use of large language models in systems control is emerging. Jobson \& Li (AIware'24) showed LLMs can draft conference schedules. Zhang et al. (ICASSP'25) use an LLM to optimize parallel program mappers via a DSL interface, achieving 3.8$\times$ speedups over OpenTuner. Their \emph{Agent-System Interface} inspires our DSL usage: abstract low-level code into a structured language, letting the LLM explore high-level mappings. In OS and cluster contexts, LLM-based agent operating systems (e.g. AIOS~\cite{arxiv2403}) propose schedulers that prioritize LLM tool calls. \sys{} builds on this vision, using an LLM itself as the scheduling agent.
+\textbf{Firm}~\cite{qiu2020firm} (OSDI'20) extends RL to multi-resource cluster scheduling with fairness constraints. However, like other RL approaches, it operates purely on statistical patterns without semantic understanding of workload requirements.
 
-\emph{Autotuning Frameworks:} AutoSched (ICS'24) tunes GPU-training schedulers by generating synthetic workloads and searching config space~\cite{tianweiz07,tianweiz07b}, improving schedulers by ~46\%. \sys{} is related but more general: instead of hand-engineered search, it uses an LLM for initial policy and RL for tuning, applicable beyond DL workloads. Prior auto-tuners (e.g. ytopt) optimize code or DBMS knobs, but \sys{} uniquely targets full scheduler logic synthesis.
+\textbf{Recent advances} include multi-objective RL schedulers~\cite{zhang2024mrsch} that optimize for multiple resources simultaneously, achieving up to 48\% performance improvements. These systems validate RL's effectiveness but highlight the need for semantic understanding that our LLM-based approach provides.
 
-In summary, \sys{} differs by combining \emph{LLM reasoning} with \emph{RL fine-tuning} to generate scheduler logic. It is the first system (to our knowledge) that leverages an LLM agent to both analyze workloads and emit scheduling policies in a DSL, bridging human insight and automated learning.
+\textbf{Key distinction}: While RL-based schedulers learn from experience, they cannot leverage domain knowledge or reason about workload characteristics. Our approach combines LLM's semantic understanding with RL's optimization capabilities.
+
+\subsection{AI for Systems}
+
+The application of AI to systems problems has gained momentum, as surveyed in recent work~\cite{zhang2024aisurvey}:
+
+\textbf{Learned Indexes}: Systems like~\cite{kraska2018learned} replace traditional B-trees with neural networks, demonstrating AI's potential for fundamental system components.
+
+\textbf{Query Optimization}: Machine learning for database query planning~\cite{marcus2019neo} shows how AI can improve complex system decisions.
+
+\textbf{Configuration Tuning}: Tools like OtterTune~\cite{vanaken2017ottertune} use ML to optimize database configurations, similar in spirit to our scheduler optimization but limited to parameter tuning.
+
+\textbf{Our contribution}: We extend AI for systems beyond parameter tuning to actual code generation, creating entirely new schedulers rather than just optimizing existing ones.
+
+\subsection{LLMs in Systems and Code Generation}
+
+The emergence of LLMs has created new opportunities for system optimization:
+
+\textbf{Code Generation}: GitHub Copilot~\cite{chen2021codex} and similar tools demonstrate LLMs' ability to generate systems code. However, they focus on developer assistance rather than autonomous system optimization.
+
+\textbf{Systems Understanding}: Recent work shows LLMs can understand complex system behaviors~\cite{wang2024llmsys}, but applications have been limited to analysis rather than synthesis.
+
+\textbf{Mapper Generation}~\cite{wei2024mapper}: The closest work to ours uses LLMs to generate parallel program mappers via DSL, achieving 3.8× speedups. We extend this approach to the more challenging domain of kernel schedulers.
+
+\subsection{sched\_ext and eBPF Schedulers}
+
+The sched\_ext framework~\cite{schedext2024} enables safe, dynamic scheduler development:
+
+\textbf{Production Schedulers}: Projects like scx\_rusty and scx\_layered demonstrate sophisticated scheduling policies implementable with eBPF, validating our choice of target platform.
+
+\textbf{Safety Guarantees}: The eBPF verifier ensures kernel safety, addressing a key challenge in dynamic scheduler generation.
+
+\textbf{Our innovation}: While sched\_ext provides the mechanism, we provide the intelligence—automatically generating schedulers tailored to specific workloads.
+
+\subsection{AI Agents and Autonomous Systems}
+
+The rapid evolution of AI agents in 2024-2025 has enabled new possibilities:
+
+\textbf{Claude Code} and similar agents demonstrate fully autonomous software development capabilities, including understanding requirements, generating code, and iterating based on feedback.
+
+\textbf{AIOS}~\cite{mei2024aios} proposes LLM-aware operating systems with agent scheduling, complementing our work by considering how to schedule AI agents themselves.
+
+\textbf{Agent Capabilities}: Modern agents combine multiple skills—code generation, testing, debugging—that we leverage for scheduler development.
+
+\subsection{Positioning Our Work}
+
+Our work is unique in several ways:
+
+\begin{enumerate}
+\item \textbf{First to use LLM agents for OS scheduler generation}: While others use ML for scheduling decisions, we generate entire schedulers.
+
+\item \textbf{Semantic Understanding}: Unlike pure RL approaches, our system understands workload intent and requirements.
+
+\item \textbf{Production-Ready}: Built on sched\_ext, our generated schedulers can run in production Linux systems.
+
+\item \textbf{Self-Evolving}: Our scheduler library grows through experience, unlike static ML models.
+
+\item \textbf{Safety-First Design}: We address the unique challenges of AI-generated kernel code through comprehensive safety mechanisms.
+\end{enumerate}
+
+\subsection{Limitations of Existing Approaches}
+
+Current approaches face several limitations that our work addresses:
+
+\textbf{RL-based methods}:
+\begin{itemize}
+\item Require extensive training per workload
+\item Cannot leverage domain knowledge
+\item Produce opaque, hard-to-debug policies
+\item Miss semantic optimization opportunities
+\end{itemize}
+
+\textbf{Traditional auto-tuning}:
+\begin{itemize}
+\item Limited to parameter optimization
+\item Cannot create new algorithms
+\item Require manual feature engineering
+\item Slow adaptation to new workloads
+\end{itemize}
+
+\textbf{Static schedulers}:
+\begin{itemize}
+\item One-size-fits-all approach
+\item Cannot adapt to workload changes
+\item Require manual updates for new patterns
+\item Limited by developer resources
+\end{itemize}
+
+Our LLM agent-based approach addresses these limitations by combining semantic understanding, code generation, and continuous learning in a unified framework.

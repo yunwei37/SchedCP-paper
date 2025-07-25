@@ -1,3 +1,118 @@
-\section{Conclusion}
+\section{Conclusion and Future Work}
 
-We present \sys{}, a novel approach to dynamic scheduling that uses an LLM-driven agent to create and configure schedulers on the fly. By exploiting the LLM's semantic understanding and combining it with RL optimization, \sys{} automatically adapts to diverse workloads and achieves better performance than static heuristics or pure RL. Our design answers the key challenges of scheduling in modern environments: it eliminates the need for human expertise in tuning, supports complex and multi-objective goals, and generalizes across domains. In future work we will explore tighter integration (e.g. real hardware prototypes) and richer multi-agent cooperation (multiple LLM agents scheduling different subsystems). We believe this work points the way toward \emph{intelligent, self-driving schedulers} that can keep up with the pace of evolving workloads.
+\subsection{Summary}
+
+We present the first framework for using fully automatic LLM agents to dynamically optimize Linux schedulers. By maintaining a self-evolving library of schedulers and leveraging reinforcement learning for continuous improvement, our system achieves significant performance gains while reducing the expertise required for OS optimization. 
+
+Our key contributions include:
+\begin{itemize}
+\item A comprehensive framework that enables any AI agent to optimize OS schedulers
+\item Design principles for AI-system interfaces that balance capability, cost, and safety
+\item Demonstrated performance improvements of 30-80\% across diverse workloads
+\item Cost reductions of 85-88\% compared to naive AI approaches
+\item Open-source implementation proving the feasibility of AI-driven OS optimization
+\end{itemize}
+
+This work demonstrates that with proper design, AI can democratize system optimization—making expert-level performance accessible to users from cloud operators to gamers, while paving the way for truly self-optimizing operating systems.
+
+\subsection{Impact and Vision}
+
+Our work has implications beyond schedulers. As AI agents become more powerful, the interfaces we design today will shape how AI interacts with systems software tomorrow. We envision a future where:
+
+\begin{itemize}
+\item Every application runs on an OS perfectly tuned for its needs
+\item System optimization is no longer the domain of a few experts
+\item Operating systems continuously evolve and improve without human intervention
+\item Performance gains compound as the scheduler library grows
+\end{itemize}
+
+The principles we establish—decoupling, context balance, composable tools, and safety-first design—are generalizable to other system components and even other domains where AI agents interact with complex systems.
+
+\subsection{Future Work}
+
+\subsubsection{Extended Scope}
+While we focus on CPU schedulers, the framework naturally extends to other OS policies:
+\begin{itemize}
+\item \textbf{Memory Management}: Page replacement algorithms, NUMA policies
+\item \textbf{I/O Scheduling}: Disk schedulers, network queue management
+\item \textbf{Power Management}: DVFS policies, core parking strategies
+\item \textbf{Security Policies}: Dynamic security configurations based on workload
+\end{itemize}
+
+\subsubsection{Cross-Component Optimization}
+Future work should explore coordinated optimization across multiple system components:
+\begin{itemize}
+\item Joint CPU-memory scheduling for memory-intensive workloads
+\item Coordinated power and performance optimization
+\item System-wide policy synthesis considering all resources
+\end{itemize}
+
+\subsubsection{Industry Adoption Path}
+To facilitate adoption, we plan to:
+\begin{itemize}
+\item Partner with cloud providers for large-scale deployment
+\item Develop certification processes for AI-generated schedulers
+\item Create industry standards for AI-system interfaces
+\item Build trust through gradual deployment and extensive testing
+\end{itemize}
+
+\subsubsection{Enhanced AI Capabilities}
+As AI models improve, our framework can leverage:
+\begin{itemize}
+\item Multi-modal understanding (code + performance graphs + logs)
+\item Longer context windows for more comprehensive analysis
+\item Faster inference for real-time optimization
+\item Better code generation reducing the need for safety checks
+\end{itemize}
+
+\subsubsection{Theoretical Foundations}
+Important theoretical questions remain:
+\begin{itemize}
+\item Formal verification of AI-generated schedulers
+\item Bounds on performance improvements achievable through AI
+\item Convergence guarantees for the self-evolution process
+\item Optimal design of AI-system interfaces
+\end{itemize}
+
+\subsection{Challenges and Considerations}
+
+\subsubsection{Trust and Reliability}
+Building trust in AI-generated kernel code requires:
+\begin{itemize}
+\item Extensive testing and gradual rollout procedures
+\item Clear audit trails and explainable decisions
+\item Fallback mechanisms and safety guarantees
+\item Industry collaboration on standards and best practices
+\end{itemize}
+
+\subsubsection{Ethical Considerations}
+AI-driven optimization raises important questions:
+\begin{itemize}
+\item Fairness in resource allocation across different users
+\item Privacy implications of workload analysis
+\item Environmental impact of optimization decisions
+\item Transparency in AI-driven system behavior
+\end{itemize}
+
+\subsubsection{Technical Debt}
+As the scheduler library grows, we must address:
+\begin{itemize}
+\item Maintenance of AI-generated code
+\item Evolution of the framework with changing AI capabilities
+\item Backward compatibility with existing systems
+\item Documentation and understanding of generated policies
+\end{itemize}
+
+\subsection{Call to Action}
+
+This work opens new possibilities for adaptive, application-aware operating systems that can automatically optimize themselves for changing workloads. We call on the community to:
+
+\begin{itemize}
+\item Contribute to the open-source implementation
+\item Share workload traces and performance data
+\item Develop new safety mechanisms and verification tools
+\item Explore applications to other system components
+\item Help establish standards for AI-system interfaces
+\end{itemize}
+
+The era of static, one-size-fits-all operating systems is ending. With AI agents as partners, we can build systems that understand, adapt, and optimize continuously. This is not just an incremental improvement—it's a fundamental shift in how we think about system software. The future of operating systems is not just self-driving, but self-evolving, and this work takes the first crucial steps on that journey.
