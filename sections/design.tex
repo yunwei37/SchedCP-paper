@@ -10,7 +10,8 @@ policy {
     tasks: all_ready_tasks;
     priorities: {
         if (task.type == "IO") then priority += 10;
-        if (task.critical_path_length > threshold) then priority += 5;
+        if (task.critical_path_length > threshold) 
+        then priority += 5;
     }
     assign: round_robin_on_idle_CPUs;
     backfill: enable_if(highest_load < X%);
