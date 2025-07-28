@@ -98,23 +98,6 @@ LLMs generate reasonable initial implementations but cannot observe runtime beha
 
 \textbf{Experimental Protocol}: We isolate reinforcement learning impact through controlled experiments. First, the LLM generates an initial scheduler for each workload, establishing baseline performance. Then, the RL component runs 100 optimization episodes. Each episode: (1) adjusts scheduler parameters or code based on current policy, (2) runs the modified scheduler on the target workload, (3) computes rewards based on performance metrics, and (4) updates the policy using PPO. We measure performance improvements at 10-episode intervals to understand convergence. The reward function balances primary performance metrics (latency or throughput), stability (variance), and resource efficiency (CPU overhead).
 
-\begin{figure}[h]
-\centering
-\caption{RL Performance Improvement Over Time}
-\label{fig:rl-improvement}
-\begin{verbatim}
-Performance Gain (%)
-25 |                                    ****
-20 |                              ********
-15 |                        ********
-10 |                  ********
- 5 |            ********
- 0 |      ********
-   +------+------+------+------+------+
-   0     20     40     60     80    100
-              RL Episodes
-\end{verbatim}
-\end{figure}
 
 \textbf{Results}: Reinforcement learning substantially refines LLM-generated schedulers. Starting from an improved baseline (LLM-generated scheduler showing 15\% improvement over CFS), RL optimization achieves additional 10-12\% performance gain, bringing total improvement to 25-27\%. Learning curves show rapid improvements in the first 20 episodes as RL discovers obvious parameter optimizations, followed by gradual refinement exploring subtle trade-offs. Convergence occurs within 50-60 episodes, after which training yields diminishing returns. RL improvements come from: fine-tuning parameters like time slice lengths and migration thresholds to match workload behavior, discovering workload-specific patterns not in initial generation, and optimizing edge cases absent from LLM training data. RL maintains stability—no cases degraded performance below the LLM baseline due to conservative policy updates and safety constraints.
 

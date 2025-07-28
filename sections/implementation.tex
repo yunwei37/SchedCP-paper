@@ -1,12 +1,26 @@
-\section{Key Technical Challenges and Solutions}
+\section{Implementation}
 
-\subsection{Code Generation Efficiency}
+\subsection{MCP Server Implementation}
 
-\subsubsection{Challenge}
-LLM agents cannot accurately estimate execution time and performance from code alone. Our experiments revealed AI schedulers produce unexpected performance due to subtle implementation choices with major runtime impacts. A linked list for task queuing causes cache misses and traversal overhead that degrades performance under load. Performance emerges from component interactions—data structure choices in one function create bottlenecks in another, making static analysis predictions unreliable.
+Our MCP (Model Context Protocol) server provides the interface between AI agents and the production system. Built with Python FastAPI, it exposes RESTful endpoints for workload submission, scheduler retrieval, and performance monitoring. WebSocket support enables real-time metric streaming for continuous optimization. Authentication via API keys and rate limiting prevent abuse while allowing multiple agents to share the infrastructure. The server implements request prioritization based on SLAs, ensuring critical workloads receive timely optimization. All operations are logged for audit trails, capturing agent decisions and performance impacts for post-mortem analysis.
 
-\subsubsection{Solution}
-We combine static and dynamic analysis. LLMs excel at pattern recognition and code generation but require empirical performance data and domain heuristics for efficient schedulers.
+\subsection{Scheduler Library Management}
+
+The scheduler library serves as institutional memory, storing successful implementations for reuse. We use Git for version control, tracking evolution of schedulers over time with full history. JSON metadata captures scheduler descriptions, performance characteristics, and applicability conditions. SQLite indexes performance metrics across deployments, enabling statistical analysis of effectiveness. Semantic embeddings via Sentence-BERT enable natural language search, finding relevant schedulers from high-level descriptions. Automatic indexing processes new schedulers, extracting patterns and updating the knowledge base. Performance regression detection flags schedulers showing degraded results, maintaining library quality over time.
+
+\subsection{Code Generation Pipeline}
+
+Our pipeline transforms AI intent into deployable schedulers through multiple stages. Template selection matches workload descriptions to proven patterns, providing starting points for customization. Parameter injection adapts templates with workload-specific values, maintaining correctness while optimizing performance. Static validation catches errors before kernel interaction, running syntax checks, type verification, and safety analysis. Incremental compilation reduces iteration time by caching intermediate results and reusing unchanged components. The pipeline integrates feedback loops, using compilation errors and test results to guide AI refinement.
+
+\subsection{Safety Implementation}
+
+Safety permeates every layer of our implementation. The validation pipeline implements defense-in-depth: syntax checking with clang-format ensures well-formed code, BPF verifier pre-check simulates kernel verification catching common issues early, resource analysis proves bounded execution avoiding infinite loops, and security scanning detects potential vulnerabilities. Runtime protection includes automatic fallback mechanisms reverting to CFS on anomalies, performance monitoring with configurable thresholds triggering alerts, resource quotas preventing runaway consumption, and comprehensive audit logging for debugging and compliance. Our gradual rollout system tests schedulers on increasing workload percentages, monitoring key metrics at each stage before full deployment.
+
+\subsection{Key Technical Challenges and Solutions}
+
+\subsubsection{Code Generation Efficiency}
+
+LLM agents cannot accurately estimate execution time and performance from code alone. Our experiments revealed AI schedulers produce unexpected performance due to subtle implementation choices with major runtime impacts. A linked list for task queuing causes cache misses and traversal overhead that degrades performance under load. Performance emerges from component interactions—data structure choices in one function create bottlenecks in another, making static analysis predictions unreliable. We address this by combining static and dynamic analysis. LLMs excel at pattern recognition and code generation but require empirical performance data and domain heuristics for efficient schedulers.
 
 \textbf{Profile-Guided Optimization}: We maintain performance profiles for scheduler patterns from thousands of executions. When LLMs generate code, we match fragments against this database to predict performance. Example: red-black trees provide O(log n) insertion but have higher constants than arrays for small task counts. We correlate code features (loop nesting, data structures, memory patterns) with runtime behavior, enabling informed trade-offs before costly testing.
 
