@@ -24,9 +24,9 @@ We treat AI as a potentially non-cautious actor that can make wrong decisions, d
 
 Our core insight is that safely and efficiently harnessing a powerful LLM agent for OS optimization requires a new architectural pattern. We see the problem as a Reinforcement Learning problem, but we are not building a better AI; we are building a better interface for AI. To that end, we present \sys, a novel control plane designed to intelligently manage the Linux scheduler (the data plane).
 
-In this architecture, the data plane is the Linux kernel itself, where a sched\_ext eBPF scheduler executes at microsecond speeds. The control plane is our framework, operating at a slower timescale to observe, analyze, and safely update the policy running in the data plane. The LLM agent acts as a pluggable, autonomous policy agent within this control plane. The framework enables an LLM agent to perform a sophisticated form of Reinforcement Learning, with other components providing essential scaffolding that makes it possible for this agent to operate effectively and safely in the real world.
+In this architecture, the data plane is the Linux kernel itself, where a sched\_ext eBPF scheduler executes at microsecond speeds. The control plane is our framework, operating at a slower timescale to observe, analyze, and safely update the policy running in the data plane. The LLM agent acts as a pluggable, autonomous policy agent within this control plane. The core here is a framework that enables an LLM agent to perform a highly sophisticated form of Reinforcement Learning. If we consider the black-box agent (Claude Code) as the ``core agent'' in an RL paradigm, then the other components of our framework are the essential scaffolding that makes it possible for this agent to operate effectively and safely in the real world.
 
-While the agent operates with full autonomy—choosing which tools to use and when—its workflow is guided by a principled, four-stage control loop: Observation, Planning, Execution, and Learning. This structure provides a scaffold for the agent's reasoning, ensuring its actions are safe, efficient, and effective.
+While the agent operates with full autonomy—choosing which tools to use and when—its workflow is guided by a principled, four-stage control loop: Observation, Planning, Execution, and Learning. This structure provides a scaffold for the agent's reasoning, ensuring its actions are safe, efficient, and effective. The agent is the ``policy agent'' in our framework.
 
 \subsubsection{Stage 1: Observation \& Analysis - Building a Workload Profile}
 
@@ -38,7 +38,7 @@ Within the sandbox, the agent has multi-modal sensing capabilities including fil
 
 The planning stage uses the Workload Profile generated in Stage 1 to synthesize a concrete optimization plan. The LLM is treated as a pluggable, autonomous agent whose job is to reason about what to do, not the low-level details of how to do it. \sys can work with any capable agent, and the agent's internal Decision Layer uses the rich, natural language goals and requirements from the Workload Profile to guide its strategy.
 
-To act efficiently, the agent typically first queries the Scheduler Knowledge Base, which serves as long-term memory containing a curated collection of production schedulers, a library of algorithm primitives, a suite of RL algorithms for finding parameters, and rich metadata with performance history. Using the profile's keywords to perform accurate semantic searches, the agent autonomously chooses one of three pathways: reconfigure an existing scheduler that is a perfect fit by providing new configuration parameters, revise a close match by retrieving source code and generating patches to adapt it, or generate a new scheduler from scratch using algorithm primitives as building blocks when no suitable scheduler exists.
+To act efficiently, the agent typically first queries the Scheduler Knowledge Base, which serves as long-term memory containing a curated collection of production schedulers, a library of algorithm primitives, a suite of RL algorithms for finding parameters, and rich metadata with performance history. Using the profile's keywords to perform accurate semantic searches, the agent autonomously chooses one of three pathways: reconfigure an existing scheduler that is a perfect fit by providing new configuration parameters, revise a close match by retrieving source code and its Implementation Layer generates patches to adapt it, or generate a new scheduler from scratch using algorithm primitives as building blocks when no suitable scheduler exists.
 
 \subsubsection{Stage 3: Execution - Validated Policy Deployment}
 
@@ -50,4 +50,26 @@ When the agent has a code artifact, it submits it to the gauntlet, which runs th
 
 The learning stage translates the outcome of an action into durable, reusable knowledge, enabling the agent and system to improve over time. This ensures the loop is closed and that the cost of optimization decreases as the system gains experience. Performance metrics gathered after actuation constitute the reward signal, which the agent accesses via the Feedback Channel.
 
-The system processes this signal in two ways. For short-term, in-context learning, the agent calls a \texttt{get\_feedback} tool that returns a concise summary of the outcome, using this feedback to inform its next decision and effectively performing in-context reinforcement learning. For long-term system evolution, structured performance data updates the Scheduler Knowledge Base, refining historical metrics for the scheduler used. Highly successful, novel schedulers generated by the agent can be contributed back to the library, enriching the system's collective intelligence.
+The system processes this signal in two ways. For short-term, in-context learning, the agent calls a \texttt{get\_feedback} tool that returns a concise summary of the outcome (e.g., ``Action 'Revise scx\_rusty' resulted in a 45\% reduction in makespan''), using this feedback to inform its next decision and effectively performing in-context reinforcement learning. For long-term system evolution, structured performance data updates the Scheduler Knowledge Base, refining historical metrics for the scheduler used. Highly successful, novel schedulers generated by the agent can be contributed back to the library, enriching the system's collective intelligence.
+
+\subsection{Example Agent Workflow}
+
+An agent's interaction is not a fixed sequence but a dynamic plan. For a kernel compilation task, its plan might proceed as follows. In the observation stage, the agent reads source files, executes \texttt{make -j} to understand build dependencies, runs \texttt{perf stat} to profile the workload, and generates a Workload Profile stating ``This is a CPU-intensive parallel compilation task that benefits from work-stealing and NUMA-aware scheduling. The processes are typically I/O-bound and short-lived. Some processes have dependencies on other processes. The overall goal is to minimize the makespan.'' It then sets up using the \texttt{time} command to collect performance metrics. During planning, it queries the Knowledge Base with keywords like ``throughput'' and ``compilation,'' retrieving \texttt{scx\_rusty}. It decides this is a good starting point but wants to improve it, generating a patch to make it dependency-aware. For execution, it submits the patched code to the Execution Gauntlet. Upon receiving a ``pass'' status and a deployment token, it calls the \texttt{deploy\_policy()} tool. Finally, in the learning stage, after a set time, it calls \texttt{get\_feedback()} and receives a positive reward signal. It then decides to contribute its improved scheduler back to the Knowledge Base for future use.
+
+\subsection{Architecture Overview}
+
+Figure~\ref{fig:architecture} illustrates our system architecture showing the production system as the data plane and \sys as the control plane. An agent's interaction follows a dynamic workflow exemplified by a kernel compilation task: the agent reads source files, executes \texttt{make -j} to understand dependencies, runs \texttt{perf stat} for profiling, and generates a Workload Profile describing it as CPU-intensive parallel compilation benefiting from work-stealing. In planning, it queries the Knowledge Base with relevant keywords, retrieves \texttt{scx\_rusty}, and generates dependency-aware patches. For execution, it submits code to the Execution Gauntlet and deploys upon validation. Finally, it collects performance feedback and contributes improvements back to the Knowledge Base for future use.
+
+\begin{figure}[h]
+\centering
+\fbox{\parbox{0.9\columnwidth}{\centering
+\vspace{2cm}
+System Architecture Diagram\\
+(Data Plane: Linux Kernel with sched\_ext)\\
+$\updownarrow$\\
+(Control Plane: \sys with Policy Agent)\\
+\vspace{2cm}
+}}
+\caption{\sys Architecture: The data plane (production system) runs sched\_ext schedulers at microsecond speeds, while the control plane (\sys) operates at slower timescales with the LLM policy agent performing observation, planning, execution, and learning cycles.}
+\label{fig:architecture}
+\end{figure}
