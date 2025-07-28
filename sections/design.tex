@@ -1,5 +1,5 @@
 \section{System Design}
-\label{sec:design}
+label{sec:design}
 
 \subsection{Design Principles}
 
@@ -21,13 +21,31 @@ Following the original Unix philosophy, we leverage LLMs' code generation abilit
 
 We treat AI as a potentially non-cautious actor that can make wrong decisions, designing interfaces that inherently prevent catastrophic failures. Our defensive API design ensures no single call can crash the system, with all operations having built-in bounds and limits that require validation before execution. For example, \texttt{set\_cpu\_limit()} has a hard maximum of 95\% to prevent starvation. We provide staged execution with validation through preview modes, dry-run capabilities for destructive operations, and mandatory validation checks between generation and deployment. The constrained action space whitelists allowed operations rather than blacklisting dangerous ones, with graduated permissions where new AI agents can only tune parameters within 20\% of defaults and earn trust through successful operations. Automatic safety rails enforce resource limits at the system level, with circuit breakers triggering when performance degrades and watchdog timers for all AI-initiated operations. While our goal is a fully automatic system, we maintain human-in-the-loop fallbacks only when necessary, requiring confirmation for critical operations during initial deployments and triggering human review on anomaly detection.
 
-\subsection{\sys: A Control Plane for Autonomous Agent-Driven Scheduling}
+\subsection{\sys Architecture}
 
 Our core insight is that safely and efficiently harnessing a powerful LLM agent for OS optimization requires a new architectural pattern. We see the problem as a Reinforcement Learning problem, but we are not building a better AI; we are building a better interface for AI. To that end, we present \sys, a novel control plane designed to intelligently manage the Linux scheduler (the data plane).
 
 In this architecture, the data plane is the Linux kernel itself, where a sched\_ext eBPF scheduler executes at microsecond speeds. The control plane is our framework, operating at a slower timescale to observe, analyze, and safely update the policy running in the data plane. The LLM agent acts as a pluggable, autonomous policy agent within this control plane. The core here is a framework that enables an LLM agent to perform a highly sophisticated form of Reinforcement Learning. If we consider the black-box agent (Claude Code) as the ``core agent'' in an RL paradigm, then the other components of our framework are the essential scaffolding that makes it possible for this agent to operate effectively and safely in the real world.
 
 While the agent operates with full autonomy—choosing which tools to use and when—its workflow is guided by a principled, four-stage control loop: Observation, Planning, Execution, and Learning. This structure provides a scaffold for the agent's reasoning, ensuring its actions are safe, efficient, and effective. The agent is the ``policy agent'' in our framework.
+
+
+Figure~\ref{fig:architecture} illustrates our system architecture showing the production system as the data plane and \sys as the control plane. An agent's interaction follows a dynamic workflow exemplified by a kernel compilation task: the agent reads source files, executes \texttt{make -j} to understand dependencies, runs \texttt{perf stat} for profiling, and generates a Workload Profile describing it as CPU-intensive parallel compilation benefiting from work-stealing. In planning, it queries the Knowledge Base with relevant keywords, retrieves \texttt{scx\_rusty}, and generates dependency-aware patches. For execution, it submits code to the Execution Gauntlet and deploys upon validation. Finally, it collects performance feedback and contributes improvements back to the Knowledge Base for future use.
+
+\begin{figure}[h]
+\centering
+\fbox{\parbox{0.9\columnwidth}{\centering
+\vspace{2cm}
+System Architecture Diagram\\
+(Data Plane: Linux Kernel with sched\_ext)\\
+$\updownarrow$\\
+(Control Plane: \sys with Policy Agent)\\
+\vspace{2cm}
+}}
+\caption{\sys Architecture: The data plane (production system) runs sched\_ext schedulers at microsecond speeds, while the control plane (\sys) operates at slower timescales with the LLM policy agent performing observation, planning, execution, and learning cycles.}
+\label{fig:architecture}
+\end{figure}
+
 
 \subsubsection{Stage 1: Observation \& Analysis - Building a Workload Profile}
 
@@ -56,21 +74,3 @@ The system processes this signal in two ways. For short-term, in-context learnin
 \subsection{Example Agent Workflow}
 
 An agent's interaction is not a fixed sequence but a dynamic plan. For a kernel compilation task, its plan might proceed as follows. In the observation stage, the agent reads source files, executes \texttt{make -j} to understand build dependencies, runs \texttt{perf stat} to profile the workload, and generates a Workload Profile stating ``This is a CPU-intensive parallel compilation task that benefits from work-stealing and NUMA-aware scheduling. The processes are typically I/O-bound and short-lived. Some processes have dependencies on other processes. The overall goal is to minimize the makespan.'' It then sets up using the \texttt{time} command to collect performance metrics. During planning, it queries the Knowledge Base with keywords like ``throughput'' and ``compilation,'' retrieving \texttt{scx\_rusty}. It decides this is a good starting point but wants to improve it, generating a patch to make it dependency-aware. For execution, it submits the patched code to the Execution Gauntlet. Upon receiving a ``pass'' status and a deployment token, it calls the \texttt{deploy\_policy()} tool. Finally, in the learning stage, after a set time, it calls \texttt{get\_feedback()} and receives a positive reward signal. It then decides to contribute its improved scheduler back to the Knowledge Base for future use.
-
-\subsection{Architecture Overview}
-
-Figure~\ref{fig:architecture} illustrates our system architecture showing the production system as the data plane and \sys as the control plane. An agent's interaction follows a dynamic workflow exemplified by a kernel compilation task: the agent reads source files, executes \texttt{make -j} to understand dependencies, runs \texttt{perf stat} for profiling, and generates a Workload Profile describing it as CPU-intensive parallel compilation benefiting from work-stealing. In planning, it queries the Knowledge Base with relevant keywords, retrieves \texttt{scx\_rusty}, and generates dependency-aware patches. For execution, it submits code to the Execution Gauntlet and deploys upon validation. Finally, it collects performance feedback and contributes improvements back to the Knowledge Base for future use.
-
-\begin{figure}[h]
-\centering
-\fbox{\parbox{0.9\columnwidth}{\centering
-\vspace{2cm}
-System Architecture Diagram\\
-(Data Plane: Linux Kernel with sched\_ext)\\
-$\updownarrow$\\
-(Control Plane: \sys with Policy Agent)\\
-\vspace{2cm}
-}}
-\caption{\sys Architecture: The data plane (production system) runs sched\_ext schedulers at microsecond speeds, while the control plane (\sys) operates at slower timescales with the LLM policy agent performing observation, planning, execution, and learning cycles.}
-\label{fig:architecture}
-\end{figure}
