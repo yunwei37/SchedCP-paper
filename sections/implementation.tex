@@ -28,20 +28,6 @@ We implemented intelligent context management that reduces token consumption whi
 
 \textbf{Semantic Compression}: We extract patterns from successful schedulers into parameterized templates. Complex algorithms become primitive combinations. Work-stealing becomes "WORK\_STEALING(steal\_threshold=3, migration\_cost=1000, numa\_aware=true)" instead of hundreds of lines. AI uses abstractions for design, expanding to code for generation. This achieves 90\% token reduction for common patterns.
 
-\textbf{Example Token Optimization}:
-\begin{verbatim}
-# Instead of full code:
-// 500+ lines of scheduler implementation
-
-# Use semantic summary:
-{
-  "type": "work_stealing_scheduler",
-  "features": ["numa_aware", "priority_queues"],
-  "critical_params": ["steal_threshold", "migration_cost"],
-  "performance_profile": "low_latency_high_throughput"
-}
-\end{verbatim}
-
 \subsection{Safety Guarantees}
 
 \subsubsection{Challenge}
@@ -55,25 +41,6 @@ We treat AI code as potentially hostile, applying defense-in-depth to prevent si
 \textbf{Sandboxed Testing Environment}: Schedulers prove safety in isolated VMs with production kernel configs. Test suites simulate workloads from normal to pathological edge cases. Testing includes memory pressure, rapid task creation/destruction, priority inversions, and CPU hotplug. We monitor correctness and performance, flagging degradation from baseline. The sandbox simulates months of runtime in hours through accelerated testing for long-term stability confidence.
 
 \textbf{Gradual Rollout Mechanism}: After passing tests, we deploy cautiously. Initial deployment affects 1\% of workload while monitoring latency percentiles, CPU utilization, context switches, and app-specific metrics. Healthy metrics for one hour trigger automatic increases: 5\%, 25\%, 50\%, 100\%. Any anomalies—performance degradation, errors, instability—instantly revert to the previous scheduler. This has prevented numerous production issues, providing critical safety for AI code.
-
-\textbf{Safety Verification Example}:
-\begin{verbatim}
-def verify_scheduler_safety(scheduler_code):
-    # Static checks
-    if not passes_bpf_verifier(scheduler_code):
-        return False, "BPF verification failed"
-    
-    # Resource bounds
-    if has_unbounded_loops(scheduler_code):
-        return False, "Unbounded loop detected"
-    
-    # Performance estimation
-    overhead = estimate_overhead(scheduler_code)
-    if overhead > MAX_ACCEPTABLE_OVERHEAD:
-        return False, f"Overhead {overhead} exceeds limit"
-    
-    return True, "All safety checks passed"
-\end{verbatim}
 
 \subsection{Performance Validation}
 

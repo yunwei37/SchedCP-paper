@@ -17,26 +17,6 @@ Following Unix philosophy, we leverage LLM code generation through programmable,
 
 Atomic tools compose into sophisticated profiling functions tracking workload phases and patterns. AI might generate analysis detecting compilation patterns and prioritizing by dependency graphs—optimizations hard to anticipate. This composable architecture grows capabilities with each workload, building an expanding optimization toolkit.
 
-\begin{verbatim}
-# Atomic tools
-stats = get_cpu_stats()
-set_scheduler_param("priority_boost", 5)
-
-# Composed tool
-def profile_workload():
-    stats = []
-    for phase in workload_phases:
-        stats.append(get_cpu_stats())
-        analyze_pattern(stats)
-    return optimization_strategy(stats)
-
-# AI-generated tool
-def custom_analysis():
-    # AI writes this based on specific needs
-    if detect_compilation_pattern():
-        prioritize_by_dependency_graph()
-\end{verbatim}
-
 \subsubsection{Safety-First Interface Design}
 We treat AI as potentially non-cautious actors needing defensive interfaces. Multiple protection layers: defensive API design ensures no call crashes the system, with built-in bounds and limits. \texttt{set\_cpu\_limit()} caps at 95\% preventing CPU starvation even with unreasonable AI requests.
 
@@ -59,23 +39,6 @@ The scheduler library is institutional memory and reusable component repository.
 Entries include complete eBPF kernel and userspace source code for immediate deployment or modification. Performance history provides empirical evidence across workload types. Test results with verification status and benchmarks ensure only validated schedulers deploy.
 
 Example: compilation-aware scheduler prioritizes by dependency depth, achieving 1.8x kernel build speedup across 50 samples. Rich metadata enables intelligent selection and configuration by workload requirements.
-
-\begin{verbatim}
-{
-  "name": "scx_compilation_aware",
-  "description": "Optimizes for software builds by prioritizing
-                  tasks based on dependency depth",
-  "parameters": {
-    "boost_factor": {"default": 2.0, "range": [1.0, 5.0]},
-    "dep_threshold": {"default": 3, "range": [1, 10]}
-  },
-  "performance": {
-    "kernel_build": {"speedup": 1.8, "samples": 50},
-    "make_world": {"speedup": 1.5, "samples": 20}
-  },
-  "source": "path/to/scheduler.bpf.c"
-}
-\end{verbatim}
 
 \subsubsection{Static Analysis \& Testing Framework}
 Our framework validates safety-critically before deployment. BPF verification pipeline pre-validates against kernel rules, checking for infinite loops and invalid memory access. It estimates verification complexity avoiding kernel loading timeouts, giving AI early code viability feedback.
