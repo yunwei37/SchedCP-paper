@@ -1,6 +1,6 @@
 \section{System Design}
 
-\subsection{Design Philosophy and Constraints}
+\subsection{Design Principles}
 
 We're building a system interface for AI. As AI agents become more powerful, all software we design will be used and maintained by AI in coming years.
 
@@ -24,7 +24,7 @@ Staged execution provides safety: preview modes show effects before execution, d
 
 Automatic safety rails enforce resource limits regardless of AI requests. Circuit breakers activate on performance degradation, watchdog timers bound operations, audit trails enable debugging. Even with poor AI decisions, systems remain stable and recoverable.
 
-\subsection{Core System Components}
+\subsection{System Architecture}
 
 \subsubsection{Multi-Layer RL LLM Agent}
 Our agent has three specialized layers. The Decision Layer analyzes workloads and system state to select strategies: configure existing schedulers, modify them, or create new ones. It reasons about trade-offs considering complexity, performance gains, and time constraints.
@@ -68,7 +68,7 @@ Tool library exposes atomic operations as endpoints and composite workflows as a
 
 Safety governance ensures secure multi-tenant operation: role-based access restricts by agent capabilities and trust. Rate limiting prevents runaway resource exhaustion. Audit logging tracks AI actions for debugging/compliance. Resource quotas ensure fair sharing and prevent monopolization.
 
-\subsection{RL Algorithm Suite}
+\subsection{Reinforcement Learning Integration}
 
 \subsubsection{In-Context Learning}
 We leverage LLMs' ability to learn from context window examples. Performance feedback from deployments automatically enters agent context, creating dynamic learning. Successful schedulers become reference examples showing what works per workload. Failed attempts include explanations of problems. AI learns from successes and failures without retraining, adapting strategies from accumulated session experience.
@@ -82,7 +82,7 @@ Multi-armed bandits address scheduler selection under uncertainty. Thompson samp
 \subsubsection{Workload Pattern Learning}
 We detect and adapt to changing workload phases in complex, time-varying applications. Hidden Markov models identify phases and predict transitions for proactive scheduler adjustments. Change point detection identifies characteristic shifts, triggering strategy re-evaluation. Online clustering groups similar behaviors, building dynamic workload pattern taxonomy for recognizing recurring scenarios. This ensures optimal performance as workloads evolve during execution.
 
-\subsection{Self-Evolution Process}
+\subsection{Continuous Learning and Evolution}
 
 The system continuously improves through structured self-evolution transforming individual experiences into collective intelligence. Experience collection links workload characteristics to scheduler effectiveness, understanding what works when and why. Failed attempts get root cause analysis, learning from mistakes.
 
@@ -92,7 +92,7 @@ Library evolution keeps schedulers relevant. New schedulers added when existing 
 
 Knowledge transfer amplifies learning value. Lessons from one workload apply to similar scenarios. Architecture-specific optimizations share across library. Meta-strategies emerge from accumulated experience guiding future optimization.
 
-\subsection{System Architecture}
+\subsection{Architecture Overview}
 
 Our architecture separates production from AI agent systems through defined interfaces. Production runs workloads under Linux kernel with sched\_ext, performance monitor daemon collects metrics. MCP server interfaces production and AI, exposing workload analysis and scheduler deployment tools.
 

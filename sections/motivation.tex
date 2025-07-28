@@ -1,6 +1,6 @@
 \section{Motivation}
 
-\subsection{Key Motivations}
+\subsection{The Semantic Gap Problem}
 
 \subsubsection{Domain Knowledge Gap in Modern Infrastructure}
 
@@ -18,24 +18,6 @@ Modern workloads show complex phase behavior changing faster than humans can res
 
 To understand the challenges and opportunities of AI-driven scheduler generation, we tested state-of-the-art autonomous coding agents by giving Claude Code a simple prompt: "write a scheduler in eBPF" on a Linux 6.12 system with sched\_ext enabled. The AI agent successfully created a working FIFO scheduler without human help, but the process took 33 minutes, made 221 API calls, went through 15+ trial-and-error iterations with various compilation errors and BPF verifier rejections, initiated 8 web browsing sessions for documentation, consulted kernel source code 12 times, and cost approximately \$6 in API fees—compared to an experienced developer who completed the same task in 5 minutes at \$0.50 with only 1-2 iterations. The AI-generated code had serious quality issues: it used inefficient data structures like linked lists instead of arrays, performed unnecessary memory allocations in the scheduling hot path, showed poor CPU cache usage patterns, and missed obvious optimizations like per-CPU data structures to avoid lock contention. The cost and time made it impractical—\$6 per scheduler is too expensive for workload-specific optimization, 33 minutes is too slow for dynamic adaptation, and the multiple iterations waste computational resources. Safety concerns were also significant: the agent needed root access to load kernel modules, could potentially crash the system during testing, lacked built-in safety checks for performance regressions, and had no gradual rollout mechanisms so failures affected the entire system. These results show three clear approaches: human experts achieve optimal results quickly, naive AI agents succeed but with prohibitive costs, and our proposed system (as we will demonstrate) bridges this gap by combining AI capabilities with structured interfaces to address these fundamental challenges.
 
-\subsection{Research Challenges}
+\subsection{Challenges}
 
-Our experiments identify four critical challenges for AI-driven scheduler optimization.
-
-\subsubsection{Safety and Reliability}
-
-Ensuring AI-generated kernel code safety is the most critical challenge. We must guarantee schedulers can't crash kernels through null pointers, infinite loops, or invalid memory access. The system must prevent soft-lockups (excessive CPU consumption), priority inversions (low-priority blocking high-priority indefinitely), and starvation (tasks never getting CPU). Beyond preventing failures, we must minimize production impacts, ensuring suboptimal decisions degrade gracefully not catastrophically. The system needs robust rollback to quickly revert to known-good schedulers when problems occur.
-
-\subsubsection{Efficiency and Cost}
-
-The 33-minute generation must reduce to seconds for practical dynamic use. This needs fundamental improvements moving from trial-and-error to directed synthesis. LLM API costs must minimize while maintaining quality through clever context management and caching. The system must leverage previous generation experience to avoid repeated work, building a growing knowledge base. Costs must amortize across deployments, making workload-specific optimization economically viable for more users.
-
-\subsubsection{Performance Optimization}
-
-AI code must match or exceed human expert performance to justify deployment. AI must understand performance implications from data structure selection to algorithm design. The system must automatically apply domain-specific optimizations experts would use, like cache-aware layouts and lock-free algorithms. Performance validation before production needs comprehensive benchmarking capturing average and worst-case behavior. The system must support continuous improvement from runtime feedback, learning from production to generate better schedulers.
-
-\subsubsection{Generalization and Adaptability}
-
-The framework must handle diverse workloads without retraining or manual config per scenario. This needs architectures transferring knowledge between similar scheduling problems, recognizing patterns across related workloads. As new hardware emerges with different characteristics, the system must adapt automatically without framework updates. User requirements and constraints must incorporate naturally, allowing customization without sacrificing automation benefits. The system must balance workload-specific specialization with cross-workload generalization.
-
-These challenges motivate our design principles and architecture presented next. By systematically addressing each challenge, we create a framework making AI-driven scheduler optimization practical and beneficial.
+Our experiments reveal critical challenges for AI-driven scheduler optimization. The foremost concern is safety and reliability—how can we ensure that AI-generated code won't break the system through kernel crashes, soft-lockups, stalls, or starvation? How do we prevent negative impacts on target workloads while maintaining system stability? Equally pressing are efficiency and cost considerations: the current 33-minute generation time must be reduced to seconds for practical deployment, and the \$6 per-scheduler cost must be minimized to make workload-specific optimization economically viable. These fundamental challenges—balancing safety with performance, and capability with cost—motivate the design principles and system architecture we present next.
