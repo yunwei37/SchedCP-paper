@@ -15,12 +15,9 @@ Following these principles, we implement \sys with five core components: (1) sta
 
 We make the following contributions:
 \begin{itemize}
-\item Design and implementation of \sys, the first comprehensive LLM agent framework for OS scheduler optimization
-\item A modular extension system that can be leveraged by any AI agent, from open-source to proprietary models
-\item A set of design principles for AI-system interfaces that balance capability, cost, and safety
-\item A self-evolving scheduler library that grows through experience and improves with model capabilities
-\item Evaluation demonstrating 30-80\% performance improvements across diverse workloads
-\item Discussion on the challenges and future directions of AI-driven system optimizations
+    \item A set of generalizable design principles for safely and efficiently integrating AI agents with critical systems software, addressing key challenges of decoupling, safety, and context management.
+    \item The design and implementation of \sys, a novel framework that leverages an LLM agent as an autonomous control plane to optimize OS schedulers.
+    \item A comprehensive evaluation demonstrating that our AI-driven approach is highly effective in practice, achieving up to 80\% performance improvements on real-world workloads like kernel compilation.
 \end{itemize}
 
 Paper organization: Background (§\ref{sec:background}), Motivation (§\ref{sec:motivation}), Design (§\ref{sec:design}), Implementation (§\ref{sec:implementation}), Evaluation (§\ref{sec:evaluation}), Related Work (§\ref{sec:related}), Future Work (§\ref{sec:future}), and Conclusion (§\ref{sec:conclusion}).
