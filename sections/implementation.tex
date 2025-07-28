@@ -56,19 +56,6 @@ Our validation balances thoroughness with efficiency, ensuring only schedulers t
 
 \textbf{Continuous Monitoring}: Validation continues post-deployment by tracking scheduler behavior. Real-time dashboards show metrics with second-level granularity for rapid anomaly detection. ML models trained on historical data identify unusual patterns indicating degradation. Automatic reports summarize daily/weekly/monthly trends, highlighting concerns. Feedback loops channel performance data to AI agents for continuous learning. When workload characteristics shift significantly, the system triggers optimized scheduler regeneration for true adaptation.
 
-\subsection{Integration with Production Systems}
-
-\subsubsection{Challenge}
-Integrating AI schedulers into production extends beyond technical implementation. Production systems have years of operational practices, monitoring, and configuration that must remain functional. Admins rely on familiar tools; disrupting workflows causes serious consequences. We must maintain compatibility with workload management, container orchestrators, and resource policies. Production requires preserved observability, debuggability, and compliance. Environments constantly evolve—new apps deploy, patterns shift, hardware changes—requiring robust, flexible integration.
-
-\subsubsection{Solution}
-We designed for seamless compatibility—AI schedulers appear as enhanced traditional schedulers, not foreign components requiring special handling.
-
-\textbf{Hot-Swappable Scheduler Architecture}: We leverage sched\_ext's dynamic loading for scheduler changes without restart or disruption. Transitions orchestrate handoffs maintaining consistency: the new scheduler loads while the old continues, new tasks go to the new scheduler while existing ones complete on the old. Critical state (priorities, affinities) migrates seamlessly. Any transition error—loading, verification, runtime—triggers automatic CFS fallback ensuring stability. This enabled thousands of production transitions without downtime or disruption.
-
-\textbf{Compatibility Layer}: AI schedulers respect all system configurations and policies. The layer translates between Linux scheduling and sched\_ext while preserving semantics. Cgroup hierarchies function identically with CPU shares, quotas, and limits enforced. Nice values map to priority adjustments. CPU affinities are strictly honored for NUMA and cache locality. Real-time constraints (SCHED\_FIFO, SCHED\_RR) receive special handling for latency-critical guarantees. Applications see identical behavior whether using CFS or AI schedulers.
-
-\textbf{Operational Integration}: Operational concerns often outweigh performance. AI schedulers emit logs compatible with existing aggregation using standard severity and structured logging. Metrics export through Prometheus and StatsD, maintaining dashboards and alerts. Configuration uses familiar formats—sysfs for kernel tunables, YAML/JSON for complex configs. The system auto-generates documentation explaining behavior, parameters, and optimizations for admin understanding. Operational transparency builds trust in AI code.
 
 \subsection{Implementation Details}
 
