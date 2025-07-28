@@ -2,114 +2,52 @@
 
 \subsection{Design Principles}
 
-We're building a system interface for AI. As AI agents become more powerful, all software we design will be used and maintained by AI in coming years.
-
-Our core insight: AI agents are context engineering systems—they need enough information for decisions without prohibitive costs. This mirrors human expert optimization: using right tools for profiling and implementing policies with appropriate frameworks. Wrong toolsets waste time and money. As system researchers, we design better systems and interfaces for AI agents, not better AI agents.
+We are building a system interface that can be used by AI agents. As AI becomes more powerful and general, all software we currently design will be used by and maintained by AI in the next few years. Our core insight is that AI agents are fundamentally context engineering systems—they need sufficient information to make decisions but not so much that costs become prohibitive. This mirrors human experts performing optimization: they need the right tools to collect profiling data and implement policies with appropriate frameworks. Choosing the wrong toolset costs significant time when time is money. As system researchers, our goal is not to design better AI agents, but to design better systems and interfaces that can be used by AI agents.
 
 \subsubsection{Decoupling and Role Separation}
-Our first principle separates ``what to optimize'' (AI's domain) from ``how to observe and act'' (system's domain). We treat AI agents as performance engineers with clear interface boundaries. AI agents understand workload patterns, identify optimizations, and generate strategies. The system provides observations, executes actions safely, and enforces constraints. This evolution-ready design lets future AI models use the same interfaces without system redesign. As AI improves, the system benefits without architectural changes, maintaining stability while intelligence evolves.
+
+Our first principle separates ``what to optimize'' (AI's domain) from ``how to observe and act'' (system's domain). We treat AI agents as performance engineers with clear interface boundaries. The system provides tools and observations, while AI gathers context information and provides decisions and actions. This evolution-ready design allows future models to leverage the same interfaces without system changes, ensuring our framework remains relevant as AI capabilities advance.
 
 \subsubsection{Context and Feedback Balance}
-AI agents trade off information completeness against token costs. Our adaptive context window starts minimal for simple decisions and adds detail for complex scenarios. The system learns which context matters for which workloads, building relevant information patterns. Integrating previous results enables experiential learning. Cost-aware APIs control information granularity, adjusting detail by decision importance. Routine optimizations stay cost-effective while complex scenarios get detailed analysis.
+
+AI agents face a fundamental challenge in balancing information completeness against token costs. Our design addresses this through an adaptive context window that starts with minimal context for simple decisions and progressively adds detail for complex scenarios. The system learns which context matters for which workload types, and adding feedback loops or previous results to the context window helps agents make better decisions. We expose APIs to control information granularity, creating a cost-efficiency trade-off that keeps routine optimizations affordable while enabling detailed analysis when needed.
 
 \subsubsection{Composable Tool Architecture}
-Following Unix philosophy, we leverage LLM code generation through programmable, composable tools. Atomic tools provide basic operations like \texttt{get\_cpu\_stats()} and \texttt{set\_scheduler\_param()}. These combine into compositional tools for complex workflows. AI dynamically creates new tool combinations and generates custom analysis scripts on demand, adapting to unexpected patterns without manual intervention.
 
-Atomic tools compose into sophisticated profiling functions tracking workload phases and patterns. AI might generate analysis detecting compilation patterns and prioritizing by dependency graphs—optimizations hard to anticipate. This composable architecture grows capabilities with each workload, building an expanding optimization toolkit.
+Following the original Unix philosophy, we leverage LLMs' code generation abilities through a programmable, not prescriptive approach. Our tool decomposition provides atomic tools for basic operations like \texttt{get\_cpu\_stats()} and \texttt{set\_scheduler\_param()}, which compose into more complex workflows. The system imposes no fixed workflows—AI decides tool sequences dynamically. This enables AI to create new tool combinations for novel scenarios, such as generating custom analysis scripts on demand that profile workloads or compose multiple stat reads into sophisticated analyses.
 
 \subsubsection{Safety-First Interface Design}
-We treat AI as potentially non-cautious actors needing defensive interfaces. Multiple protection layers: defensive API design ensures no call crashes the system, with built-in bounds and limits. \texttt{set\_cpu\_limit()} caps at 95\% preventing CPU starvation even with unreasonable AI requests.
 
-Staged execution provides safety: preview modes show effects before execution, dry-runs test destructive operations. Mandatory validation between generation and deployment catches issues before production impact. Constrained action space whitelists safe operations. New agents start limited (20\% parameter variations), earning autonomy through success.
+We treat AI as a potentially non-cautious actor that can make wrong decisions, designing interfaces that inherently prevent catastrophic failures. Our defensive API design ensures no single call can crash the system, with all operations having built-in bounds and limits that require validation before execution. For example, \texttt{set\_cpu\_limit()} has a hard maximum of 95\% to prevent starvation. We provide staged execution with validation through preview modes, dry-run capabilities for destructive operations, and mandatory validation checks between generation and deployment. The constrained action space whitelists allowed operations rather than blacklisting dangerous ones, with graduated permissions where new AI agents can only tune parameters within 20\% of defaults and earn trust through successful operations. Automatic safety rails enforce resource limits at the system level, with circuit breakers triggering when performance degrades and watchdog timers for all AI-initiated operations. While our goal is a fully automatic system, we maintain human-in-the-loop fallbacks only when necessary, requiring confirmation for critical operations during initial deployments and triggering human review on anomaly detection.
 
-Automatic safety rails enforce resource limits regardless of AI requests. Circuit breakers activate on performance degradation, watchdog timers bound operations, audit trails enable debugging. Even with poor AI decisions, systems remain stable and recoverable.
+\subsection{\sys: A Control Plane for Autonomous Agent-Driven Scheduling}
 
-\subsection{System Architecture}
+Our core insight is that safely and efficiently harnessing a powerful LLM agent for OS optimization requires a new architectural pattern. We see the problem as a Reinforcement Learning problem, but we are not building a better AI; we are building a better interface for AI. To that end, we present \sys, a novel control plane designed to intelligently manage the Linux scheduler (the data plane).
 
-\subsubsection{Multi-Layer RL LLM Agent}
-Our agent has three specialized layers. The Decision Layer analyzes workloads and system state to select strategies: configure existing schedulers, modify them, or create new ones. It reasons about trade-offs considering complexity, performance gains, and time constraints.
+In this architecture, the data plane is the Linux kernel itself, where a sched\_ext eBPF scheduler executes at microsecond speeds. The control plane is our framework, operating at a slower timescale to observe, analyze, and safely update the policy running in the data plane. The LLM agent acts as a pluggable, autonomous policy agent within this control plane. The framework enables an LLM agent to perform a sophisticated form of Reinforcement Learning, with other components providing essential scaffolding that makes it possible for this agent to operate effectively and safely in the real world.
 
-The Implementation Layer translates decisions into code. It generates eBPF C for kernel components and Rust for userspace, following sched\_ext conventions and safety requirements. This handles kernel programming complexities, letting Decision Layer focus on strategy.
+While the agent operates with full autonomy—choosing which tools to use and when—its workflow is guided by a principled, four-stage control loop: Observation, Planning, Execution, and Learning. This structure provides a scaffold for the agent's reasoning, ensuring its actions are safe, efficient, and effective.
 
-The Learning Layer applies RL for continuous improvement. It processes scheduler feedback, updates strategy selection from outcomes, and maintains context memory. Each deployment enriches understanding of what works for different workloads.
+\subsubsection{Stage 1: Observation \& Analysis - Building a Workload Profile}
 
-\subsubsection{AI-Managed Scheduler Library}
-The scheduler library is institutional memory and reusable component repository. Each entry records scheduler characteristics and performance history. Natural language descriptions summarize purpose and use cases for AI understanding. Configuration parameters have ranges and defaults for safe fine-tuning.
+The observation stage enables the policy agent to perform a deep, semantic analysis of a workload and synthesize its findings into a structured ``Workload Profile.'' This profile serves as the foundational understanding and specification for all subsequent optimization steps. The agent pulls the information it needs, from high-level source code to low-level performance counters, ensuring it has the right context without being flooded. \sys provides the agent with access to a secure Analysis Sandbox, a containerized environment where the agent can actively investigate the workload using a wide array of tools, much like a human developer.
 
-Entries include complete eBPF kernel and userspace source code for immediate deployment or modification. Performance history provides empirical evidence across workload types. Test results with verification status and benchmarks ensure only validated schedulers deploy.
+Within the sandbox, the agent has multi-modal sensing capabilities including file system access to read source code, Makefiles, dependency manifests, and configuration files to understand the software's structure. It can execute diagnostic shell commands like \texttt{git log}, \texttt{make}, \texttt{perf stat}, and \texttt{strace} to observe the software's build process and runtime behavior. The agent can also call structured metric APIs for real-time performance data. The ultimate output is not raw data but a structured specification file containing a natural language summary of the workload's purpose, key performance characteristics and resource requirements, and explicit optimization goals that guide the next stage. Additionally, the agent can register callback URLs with the \sys Server, allowing our Performance Monitor Daemon to proactively notify the agent of critical events such as performance drops or workload phase changes, triggering new analysis cycles without polling.
 
-Example: compilation-aware scheduler prioritizes by dependency depth, achieving 1.8x kernel build speedup across 50 samples. Rich metadata enables intelligent selection and configuration by workload requirements.
+\subsubsection{Stage 2: Planning - Policy Synthesis and Selection}
 
-\subsubsection{Static Analysis \& Testing Framework}
-\sys validates safety-critically before deployment. BPF verification pipeline pre-validates against kernel rules, checking for infinite loops and invalid memory access. It estimates verification complexity avoiding kernel loading timeouts, giving AI early code viability feedback.
+The planning stage uses the Workload Profile generated in Stage 1 to synthesize a concrete optimization plan. The LLM is treated as a pluggable, autonomous agent whose job is to reason about what to do, not the low-level details of how to do it. \sys can work with any capable agent, and the agent's internal Decision Layer uses the rich, natural language goals and requirements from the Workload Profile to guide its strategy.
 
-Performance estimation uses static analysis predicting scheduler overhead. It analyzes instruction counts, branch complexity, cache patterns identifying bottlenecks. Early feedback helps AI refine implementations before production impact.
+To act efficiently, the agent typically first queries the Scheduler Knowledge Base, which serves as long-term memory containing a curated collection of production schedulers, a library of algorithm primitives, a suite of RL algorithms for finding parameters, and rich metadata with performance history. Using the profile's keywords to perform accurate semantic searches, the agent autonomously chooses one of three pathways: reconfigure an existing scheduler that is a perfect fit by providing new configuration parameters, revise a close match by retrieving source code and generating patches to adapt it, or generate a new scheduler from scratch using algorithm primitives as building blocks when no suitable scheduler exists.
 
-Automated testing validates through multiple layers: unit tests verify functions, integration tests validate with simulated workloads, stress tests explore edge cases. Multi-tiered testing catches condition-specific issues ensuring robust implementations.
+\subsubsection{Stage 3: Execution - Validated Policy Deployment}
 
-\subsubsection{Scheduler Optimization Libraries}
-Optimization libraries provide pre-built patterns and primitives for rapid development. Production schedulers include: \texttt{scx\_rusty} (work-stealing with load balancing), \texttt{scx\_layered} (hierarchical with cgroup awareness), \texttt{scx\_central} (centralized queue for NUMA). These serve as deployment options and AI learning examples.
+The execution stage provides a secure service for the agent to validate and deploy its proposed policy without compromising system stability. This entire stage embodies treating AI as a potentially non-cautious actor, providing non-negotiable validation for all agent-generated code. The Execution Gauntlet is not a passive pipeline but a service the agent explicitly calls.
 
-Algorithm primitives offer building blocks: FIFO, LIFO, priority queues. Includes CFS-style virtual runtime for fairness, work-stealing/migration for load balancing, CPU affinity for NUMA. Primitives combine and customize for novel algorithms tailored to workloads.
+When the agent has a code artifact, it submits it to the gauntlet, which runs the code through three validation layers. Static pre-flight checks simulate the kernel's BPF verifier to catch safety violations early, analyze instruction counts and code paths to estimate scheduler overhead, and allow the agent to call additional static analysis tools to validate intended behavior. Dynamic sandbox validation compiles and runs the proposed scheduler in a secure sandbox against unit, integration, and stress tests to validate logical correctness, measuring performance to ensure it meets Workload Profile goals before production deployment. For monitored production rollout, if the gauntlet is passed, it returns a deployment token to the agent, who then makes an explicit call to deploy the policy. The Performance Monitor Daemon continuously observes the new scheduler, and if key performance indicators degrade beyond thresholds, the circuit breaker triggers and the system automatically reverts to the last known-good scheduler.
 
-Smart retrieval enables efficient usage: semantic search with natural language, performance-based ranking from historical data. System extracts successful patterns from AI schedulers, continuously enriching the library with discovered optimizations.
+\subsubsection{Stage 4: Learning - Performance Analysis and Knowledge Update}
 
-\subsubsection{Profiling \& Monitoring Toolkit}
-Our toolkit provides workload analysis and observability for scheduler optimization. Workload profiling captures CPU patterns, detects phase transitions between compute and I/O behaviors. Analyzes memory patterns and working sets for cache requirements. Monitors I/O behavior and syscalls for communication patterns. Task creation rates identify batch vs interactive workloads.
+The learning stage translates the outcome of an action into durable, reusable knowledge, enabling the agent and system to improve over time. This ensures the loop is closed and that the cost of optimization decreases as the system gains experience. Performance metrics gathered after actuation constitute the reward signal, which the agent accesses via the Feedback Channel.
 
-Real-time monitoring tracks scheduler metrics: decision latencies, queue depths, wait times. Monitors CPU utilization and idle stats for inefficiencies. Tracks context switches and migrations for overhead. Real-time data enables anomaly detection and immediate feedback.
-
-Low-overhead implementation prevents monitoring impact. eBPF probes enable zero-copy kernel collection, hardware counters provide cycle-accurate measurements, in-kernel aggregation reduces data volume. Enables continuous production monitoring without performance impact.
-
-\subsubsection{Unified Agent Extension Framework}
-\sys standardizes interfaces for any AI agent optimizing schedulers, from open-source to proprietary. \sys server implements RESTful API for workload submission and scheduler retrieval, with streaming for real-time monitoring. Standardized formats ensure cross-model compatibility, allowing AI provider switches without system changes.
-
-Tool library exposes atomic operations as endpoints and composite workflows as abstractions. Simple agents use high-level tools while sophisticated ones compose custom workflows from atomic operations. \sys supports custom tool registration for agent-specific extensions without core modifications.
-
-Safety governance ensures secure multi-tenant operation: role-based access restricts by agent capabilities and trust. Rate limiting prevents runaway resource exhaustion. Audit logging tracks AI actions for debugging/compliance. Resource quotas ensure fair sharing and prevent monopolization.
-
-\subsection{Reinforcement Learning Integration}
-
-\subsubsection{In-Context Learning}
-We leverage LLMs' ability to learn from context window examples. Performance feedback from deployments automatically enters agent context, creating dynamic learning. Successful schedulers become reference examples showing what works per workload. Failed attempts include explanations of problems. AI learns from successes and failures without retraining, adapting strategies from accumulated session experience.
-
-\subsubsection{Bayesian Optimization}
-Bayesian optimization efficiently tunes parameters with uncertainty quantification. Gaussian processes learn parameter-performance relationships, modeling how scheduler parameters affect workloads. Acquisition functions balance exploring uncertain regions with exploiting known good configs. Automatic hyperparameter selection adapts optimization, tuning exploration-exploitation trade-offs based on performance variability. This minimizes configuration attempts for optimal parameters.
-
-\subsubsection{Multi-Armed Bandits}
-Multi-armed bandits address scheduler selection under uncertainty. Thompson sampling selects probabilistically from performance distributions, balancing untested scheduler exploration with proven performer exploitation. Upper confidence bounds optimistically select schedulers that might perform well given uncertainty. Contextual bandits incorporate workload features, learning which scheduler traits correlate with workload success. This creates adaptive selection improving with experience while maintaining performance.
-
-\subsubsection{Workload Pattern Learning}
-We detect and adapt to changing workload phases in complex, time-varying applications. Hidden Markov models identify phases and predict transitions for proactive scheduler adjustments. Change point detection identifies characteristic shifts, triggering strategy re-evaluation. Online clustering groups similar behaviors, building dynamic workload pattern taxonomy for recognizing recurring scenarios. This ensures optimal performance as workloads evolve during execution.
-
-\subsection{Continuous Learning and Evolution}
-
-The system continuously improves through structured self-evolution transforming individual experiences into collective intelligence. Experience collection links workload characteristics to scheduler effectiveness, understanding what works when and why. Failed attempts get root cause analysis, learning from mistakes.
-
-Pattern extraction transforms experience into reusable knowledge. Successful optimizations become library patterns for new scenarios. System identifies failure modes and builds defensive strategies. Cross-workload generalizations emerge from broadly applicable principles.
-
-Library evolution keeps schedulers relevant. New schedulers added when existing ones insufficient. Underperformers deprecated by empirical evidence. System creates hybrids combining successful components, exploring new designs through synthesis.
-
-Knowledge transfer amplifies learning value. Lessons from one workload apply to similar scenarios. Architecture-specific optimizations share across library. Meta-strategies emerge from accumulated experience guiding future optimization.
-
-\subsection{Architecture Overview}
-
-Our architecture separates production from AI agent systems through defined interfaces. Production runs workloads under Linux kernel with sched\_ext, performance monitor daemon collects metrics. \sys server interfaces production and AI, exposing workload analysis and scheduler deployment tools.
-
-AI agent system has: multi-layer RL LLM agent making decisions, scheduler library storing components, safety validation ensuring correctness. Modular design allows independent evolution maintaining stability. Production communicates via standardized APIs for seamless deployment, monitoring, and feedback without disrupting workloads.
-
-Agent workflow: (1) analyze workload characteristics, (2) search library for suitable schedulers, (3) decide to configure/modify/create schedulers, (4) validate safety and correctness, (5) deploy to production, (6) collect feedback for improvement. This ensures safe and effective optimization.
-
-Figure~\ref{fig:architecture} shows a placeholder for our system architecture diagram, illustrating how the production system interfaces with the AI agent system through the \sys server.
-
-\begin{figure}[h]
-\centering
-\fbox{\parbox{0.9\columnwidth}{\centering
-\vspace{2cm}
-System Architecture Diagram\\
-(Production System $\leftrightarrow$ \sys Server $\leftrightarrow$ AI Agent System)\\
-\vspace{2cm}
-}}
-\caption{System Architecture: Production system (top) interfaces with AI agent system (bottom) through \sys server. The AI agent selects, modifies, or generates schedulers based on workload analysis, with all code passing through safety validation before deployment.}
-\label{fig:architecture}
-\end{figure}
+The system processes this signal in two ways. For short-term, in-context learning, the agent calls a \texttt{get\_feedback} tool that returns a concise summary of the outcome, using this feedback to inform its next decision and effectively performing in-context reinforcement learning. For long-term system evolution, structured performance data updates the Scheduler Knowledge Base, refining historical metrics for the scheduler used. Highly successful, novel schedulers generated by the agent can be contributed back to the library, enriching the system's collective intelligence.
