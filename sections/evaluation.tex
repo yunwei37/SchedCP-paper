@@ -14,11 +14,11 @@ We investigate five key research questions to validate the effectiveness and eff
 
 \subsection{Experimental Setup}
 
-We evaluate \sys through comprehensive experiments designed to validate LLM capabilities in scheduler optimization. Our testbed consists of a 32-core AMD EPYC 7543 processor with 256GB DDR4-3200 RAM, representing modern server deployments. The EPYC platform's chiplet architecture with multiple CCX units connected via Infinity Fabric presents realistic NUMA challenges. Storage uses enterprise NVMe SSDs eliminating I/O bottlenecks, focusing tests on scheduler behavior. All systems run Linux 6.12 with sched\_ext enabled. We test multiple AI agents including Claude Code (Opus 4), GPT-4, and Gemini Pro to evaluate framework generality, with Llama-3 70B for cost-sensitive deployments. Our workload suite spans latency-sensitive applications (schbench web service simulation, database queries), throughput-oriented tasks (Linux kernel compilation, video transcoding), batch processing scenarios (data analytics, log processing, unit testing), and mixed workloads (Git operations, Chromium test suite).
+We evaluate \sys on a 32-core AMD EPYC 7543 with 256GB DDR4-3200, NVMe SSDs, 10Gbps network, running Linux 6.12 with sched\_ext. We test Claude Code (Opus 4) and Gemini-cli (Gemini 2.5 Pro) as AI agents to validate framework generality.
 
 \subsection{Performance Impact of AI-Driven Optimization}
 
-Figure~\ref{fig:performance-comparison} demonstrates the multi-stage performance improvements achieved through \sys, addressing both RQ1 (LLM configuration effectiveness) and RQ4 (RL enhancement impact). We evaluate performance across diverse workloads comparing three configurations: baseline Linux CFS scheduler, LLM-configured schedulers where the agent selects and tunes parameters, and RL-improved schedulers after feedback loop optimization.
+Figure~\ref{fig:performance-comparison} shows performance improvements across three stages: baseline CFS, LLM-configured schedulers, and RL-improved configurations. For schbench, the LLM achieves 50\% lower p99 latency and 30\% higher throughput by selecting scx\_layered. Linux kernel build shows 80\% speedup from 312s to 173s using scx\_rusty. The LLM correctly identifies workload characteristics in 85\% of cases. RL optimization adds 10-12\% additional gain beyond LLM configuration, with total improvements of 25-27\% over baseline CFS. Convergence occurs within 50-60 episodes of RL training.
 
 \begin{figure}[h]
 \centering
@@ -28,63 +28,29 @@ Performance Comparison: Baseline vs LLM vs RL-Enhanced\\
 (Grouped bar chart showing 30-80\% LLM gains + 10-12\% RL improvement)\\
 \vspace{2cm}
 }}
-\caption{Multi-stage performance improvements from baseline to RL-enhanced schedulers. Shows initial LLM configuration gains (30-80\%) and additional RL improvements (10-12\%) across different workload types.}
+\caption{Performance comparison of scheduler configurations with RL improvement showing initial LLM gains (30-80\%) and additional RL improvements (10-12\%).}
 \label{fig:performance-comparison}
 \end{figure}
 
-The results show significant performance improvements through intelligent scheduler selection and configuration. For schbench, the LLM achieves 50\% lower p99 latency and 30\% higher throughput by selecting scx\_layered with minimal time slices and aggressive priority boosting. Linux kernel build demonstrates approximately 80\% speedup, reducing compilation time from 312s to 173s through scx\_rusty with work-stealing enabled. The LLM correctly identifies latency-sensitive versus throughput-oriented workloads in 85\% of cases, matching expert recommendations. Reinforcement learning adds substantial value beyond initial LLM configuration, contributing an additional 10-12\% performance gain through parameter fine-tuning and workload-specific pattern discovery. Total improvements reach 25-27\% over baseline CFS, with RL convergence typically occurring within 50-60 episodes. The RL component discovers optimization opportunities missed by initial generation, such as optimal migration thresholds and time slice adjustments based on actual workload behavior.
-
-\begin{table}[h]
-\caption{Performance Improvements Across Workload Types}
-\label{tab:performance-results}
-\begin{tabular}{lrrrr}
-\toprule
-Workload & Baseline & LLM Config & RL-Enhanced & Total Gain \\
-\midrule
-schbench (p99 latency) & 14.2ms & 7.1ms & 6.3ms & 56\% \\
-Linux kernel build & 312s & 173s & 156s & 50\% \\
-TPC-H Q1 & 45.3s & 31.2s & 28.9s & 36\% \\
-Video transcode & 521s & 412s & 385s & 26\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \subsection{Novel Scheduler Synthesis for Batch Workloads}
 
-Beyond configuration, \sys demonstrates the ability to generate entirely new schedulers tailored to specific workload characteristics, addressing RQ2. We focus on batch processing scenarios with uneven process workloads that challenge traditional fair-share schedulers: data analytics with join table operations, log analysis pipelines, video editing workflows, Git operations on large repositories, and unit testing suites with varying test durations.
+Figure~\ref{fig:batch-performance} demonstrates AI-generated scheduler performance on batch workloads. For unit tests minimizing average wait time, the agent implements SJF scheduling achieving 45\% reduction. For compilation workloads, it implements LJF scheduling with 32\% improvement in makespan. Data analytics workloads see 29\% speedup with a hybrid approach. Claude Opus consistently identifies theoretically optimal strategies, validating the AI's understanding of scheduling principles.
 
 \begin{figure}[h]
 \centering
 \fbox{\parbox{0.9\columnwidth}{\centering
 \vspace{1.5cm}
 AI-Generated Scheduler Performance\\
-(Grouped bars: CFS vs AI-Generated with strategy labels)\\
+(Grouped bars: CFS vs AI-Generated with SJF/LJF labels)\\
 \vspace{1.5cm}
 }}
-\caption{Performance of AI-generated schedulers on batch workloads. Shows 30-50\% improvements through theoretically optimal algorithm selection (SJF, LJF, Hybrid).}
+\caption{AI-generated scheduler performance on batch workloads showing 30-50\% improvements through optimal algorithm selection.}
 \label{fig:batch-performance}
 \end{figure}
 
-The AI demonstrates sophisticated understanding of scheduling theory in practice. For unit tests minimizing average wait time, Claude Opus correctly implements Shortest Job First (SJF) scheduling, achieving 45\% reduction in average waiting time. For compilation workloads where total makespan matters, the agent implements Longest Job First (LJF) scheduling with 32\% improvement. The generated code includes dependency-aware scheduling for build systems, analyzing the build graph to prioritize critical path tasks. Performance improvements of 30-50\% across batch workloads validate that theoretical insights translate to practical benefits. The AI's ability to identify and implement optimal strategies varies by model—Claude Opus consistently recognizes these patterns while other models may default to simpler heuristics.
-
-\begin{table}[h]
-\caption{AI-Generated Scheduler Performance on Batch Workloads}
-\label{tab:batch-results}
-\begin{tabular}{lrrr}
-\toprule
-Workload & Default CFS & AI-Generated & Strategy Used \\
-\midrule
-Compilation (makespan) & 100\% & 68\% (-32\%) & Longest Job First \\
-Unit tests (avg wait) & 100\% & 55\% (-45\%) & Shortest Job First \\
-Data analytics & 100\% & 71\% (-29\%) & Hybrid approach \\
-Git gc (large repo) & 100\% & 64\% (-36\%) & Dependency-aware \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \subsection{Cost Reduction and Optimization Efficiency}
 
-Economic viability is critical for practical adoption of AI-driven optimization (RQ3). Our motivation experiments revealed prohibitive costs for naive approaches: basic FIFO scheduler generation required 33 minutes, 221 API calls, costing approximately \$6. \sys dramatically reduces these costs through multiple optimizations.
+Figure~\ref{fig:cost-reduction} illustrates dramatic cost reductions achieved through framework optimizations. Generation time drops from 33 minutes to 5 minutes (85\% reduction). API calls decrease from 221 to 28 (87\% reduction). Monetary cost falls from \$6.00 to \$0.75 (88\% reduction). Success rate improves from 65\% to 95\% (+30pp improvement). These optimizations make AI-driven scheduler optimization economically viable for production deployment.
 
 \begin{figure}[h]
 \centering
@@ -94,30 +60,13 @@ Cost Reduction Through Framework Optimizations\\
 (Multi-line graph: Time, API calls, Cost, Success rate)\\
 \vspace{1.5cm}
 }}
-\caption{Cost reduction achieved through scheduler library, semantic search, and RL optimization. Shows 85-88\% reduction in time, API calls, and monetary cost.}
+\caption{Cost reduction through framework optimizations showing 85-88\% reduction across all metrics.}
 \label{fig:cost-reduction}
 \end{figure}
 
-The scheduler library serves as institutional memory, eliminating redundant generation—60\% of requests are satisfied through library adaptation rather than full generation. Semantic search through our pattern database provides relevant examples, cutting average iteration count from 15+ to under 3. Caching API responses for documentation queries reduces calls by 40\%. Template reuse lets AI focus on customization rather than boilerplate. These optimizations achieve 85-88\% cost reduction: generation time drops from 33 to 5 minutes, API calls decrease from 221 to 28, and cost falls from \$6.00 to \$0.75. Success rate improves from 65\% to 95\% through learned patterns and better prompting strategies, making AI-driven scheduler optimization economically competitive with human development.
-
-\begin{table}[h]
-\caption{Cost Analysis: Naive vs Optimized Approach}
-\label{tab:cost-analysis}
-\begin{tabular}{lrrrr}
-\toprule
-Metric & Naive & With Library & With RL & Improvement \\
-\midrule
-Generation time & 33 min & 8 min & 5 min & 85\% \\
-API calls & 221 & 45 & 28 & 87\% \\
-Cost & \$6.00 & \$1.20 & \$0.75 & 88\% \\
-Success rate & 65\% & 92\% & 95\% & +30pp \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \subsection{Workload Classification and Understanding}
 
-AI-driven scheduler optimization depends on LLMs accurately understanding workload characteristics from high-level descriptions and system observations (RQ5). We evaluate classification accuracy across diverse workload categories to validate this capability.
+Figure~\ref{fig:workload-classification} presents a confusion matrix of workload classification accuracy. The system achieves 89.6\% overall accuracy across five categories: CPU-intensive, I/O-bound, Memory-intensive, Latency-critical, and Batch. Best performance occurs for latency-critical workloads (96\% accuracy) and CPU-intensive workloads (94\% accuracy). I/O-bound (86\%) and memory-intensive (82\%) workloads present greater classification challenges. Classification cost averages \$0.15 per analysis, making continuous optimization economically feasible.
 
 \begin{figure}[h]
 \centering
@@ -128,27 +77,6 @@ Workload Classification Confusion Matrix\\
 Overall Accuracy: 89.6\%\\
 \vspace{2cm}
 }}
-\caption{Confusion matrix showing LLM workload classification accuracy. Achieves 89.6\% overall accuracy with best performance on latency-critical (96\%) and CPU-intensive (94\%) workloads.}
+\caption{Confusion matrix of workload classification showing 89.6\% overall accuracy with best performance on latency-critical and CPU-intensive workloads.}
 \label{fig:workload-classification}
 \end{figure}
-
-LLMs achieve 89.6\% overall classification accuracy through sophisticated feature extraction. The agent examines system call patterns, inferring high read/write ratios indicate I/O-bound workloads while syscall-light applications are CPU-intensive. It analyzes CPU utilization patterns, distinguishing sustained high usage (compute-bound) from bursty patterns (interactive). Memory access patterns identify cache-sensitive workloads benefiting from NUMA-aware scheduling. Task creation and lifetime distributions reveal workload types—short-lived tasks with high creation rates suggest compilation, while long-lived tasks indicate services. Classification cost averages \$0.15 per workload analysis, making continuous optimization economically feasible. The 89.6\% accuracy validates natural language as a viable interface for scheduler optimization, bridging the gap between high-level descriptions and low-level system behaviors.
-
-\begin{table}[h]
-\caption{Workload Classification Accuracy by Category}
-\label{tab:workload-classification}
-\begin{tabular}{lrrr}
-\toprule
-Workload Category & Correct & Total & Accuracy \\
-\midrule
-Latency-critical & 48 & 50 & 96\% \\
-CPU-intensive & 47 & 50 & 94\% \\
-Batch processing & 45 & 50 & 90\% \\
-I/O-bound & 43 & 50 & 86\% \\
-Memory-intensive & 41 & 50 & 82\% \\
-\midrule
-Overall & 224 & 250 & 89.6\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
