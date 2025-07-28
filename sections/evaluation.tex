@@ -2,23 +2,23 @@
 
 \subsection{Research Questions}
 
-We investigate five key research questions to validate the effectiveness and efficiency of our AI-driven scheduler optimization framework:
+We investigate five key research questions to validate the effectiveness and efficiency of \sys:
 
 \begin{itemize}
-\item \textbf{RQ1}: Can LLM agents effectively configure existing schedulers?
-\item \textbf{RQ2}: Can LLM agents generate new schedulers for specific workloads?
-\item \textbf{RQ3}: What is the cost and efficiency of AI-driven scheduler generation?
+\item \textbf{RQ1}: Can \sys effectively configure existing schedulers?
+\item \textbf{RQ2}: Can \sys generate new schedulers for specific workloads?
+\item \textbf{RQ3}: What is the cost and efficiency of \sys's scheduler generation?
 \item \textbf{RQ4}: How much can RL improve performance after initial generation?
-\item \textbf{RQ5}: How effectively can LLMs understand workloads?
+\item \textbf{RQ5}: How effectively can \sys understand workloads?
 \end{itemize}
 
 \subsection{Experimental Setup}
 
-We evaluate our framework through comprehensive experiments designed to validate LLM capabilities in scheduler optimization. Our testbed consists of a 32-core AMD EPYC 7543 processor with 256GB DDR4-3200 RAM, representing modern server deployments. The EPYC platform's chiplet architecture with multiple CCX units connected via Infinity Fabric presents realistic NUMA challenges. Storage uses enterprise NVMe SSDs eliminating I/O bottlenecks, focusing tests on scheduler behavior. All systems run Linux 6.12 with sched\_ext enabled. We test multiple AI agents including Claude Code (Opus 4), GPT-4, and Gemini Pro to evaluate framework generality, with Llama-3 70B for cost-sensitive deployments. Our workload suite spans latency-sensitive applications (schbench web service simulation, database queries), throughput-oriented tasks (Linux kernel compilation, video transcoding), batch processing scenarios (data analytics, log processing, unit testing), and mixed workloads (Git operations, Chromium test suite).
+We evaluate \sys through comprehensive experiments designed to validate LLM capabilities in scheduler optimization. Our testbed consists of a 32-core AMD EPYC 7543 processor with 256GB DDR4-3200 RAM, representing modern server deployments. The EPYC platform's chiplet architecture with multiple CCX units connected via Infinity Fabric presents realistic NUMA challenges. Storage uses enterprise NVMe SSDs eliminating I/O bottlenecks, focusing tests on scheduler behavior. All systems run Linux 6.12 with sched\_ext enabled. We test multiple AI agents including Claude Code (Opus 4), GPT-4, and Gemini Pro to evaluate framework generality, with Llama-3 70B for cost-sensitive deployments. Our workload suite spans latency-sensitive applications (schbench web service simulation, database queries), throughput-oriented tasks (Linux kernel compilation, video transcoding), batch processing scenarios (data analytics, log processing, unit testing), and mixed workloads (Git operations, Chromium test suite).
 
 \subsection{Performance Impact of AI-Driven Optimization}
 
-Figure~\ref{fig:performance-comparison} demonstrates the multi-stage performance improvements achieved through our framework, addressing both RQ1 (LLM configuration effectiveness) and RQ4 (RL enhancement impact). We evaluate performance across diverse workloads comparing three configurations: baseline Linux CFS scheduler, LLM-configured schedulers where the agent selects and tunes parameters, and RL-improved schedulers after feedback loop optimization.
+Figure~\ref{fig:performance-comparison} demonstrates the multi-stage performance improvements achieved through \sys, addressing both RQ1 (LLM configuration effectiveness) and RQ4 (RL enhancement impact). We evaluate performance across diverse workloads comparing three configurations: baseline Linux CFS scheduler, LLM-configured schedulers where the agent selects and tunes parameters, and RL-improved schedulers after feedback loop optimization.
 
 \begin{figure}[h]
 \centering
@@ -51,7 +51,7 @@ Video transcode & 521s & 412s & 385s & 26\% \\
 
 \subsection{Novel Scheduler Synthesis for Batch Workloads}
 
-Beyond configuration, our framework demonstrates the ability to generate entirely new schedulers tailored to specific workload characteristics, addressing RQ2. We focus on batch processing scenarios with uneven process workloads that challenge traditional fair-share schedulers: data analytics with join table operations, log analysis pipelines, video editing workflows, Git operations on large repositories, and unit testing suites with varying test durations.
+Beyond configuration, \sys demonstrates the ability to generate entirely new schedulers tailored to specific workload characteristics, addressing RQ2. We focus on batch processing scenarios with uneven process workloads that challenge traditional fair-share schedulers: data analytics with join table operations, log analysis pipelines, video editing workflows, Git operations on large repositories, and unit testing suites with varying test durations.
 
 \begin{figure}[h]
 \centering
@@ -84,7 +84,7 @@ Git gc (large repo) & 100\% & 64\% (-36\%) & Dependency-aware \\
 
 \subsection{Cost Reduction and Optimization Efficiency}
 
-Economic viability is critical for practical adoption of AI-driven optimization (RQ3). Our motivation experiments revealed prohibitive costs for naive approaches: basic FIFO scheduler generation required 33 minutes, 221 API calls, costing approximately \$6. Our framework dramatically reduces these costs through multiple optimizations.
+Economic viability is critical for practical adoption of AI-driven optimization (RQ3). Our motivation experiments revealed prohibitive costs for naive approaches: basic FIFO scheduler generation required 33 minutes, 221 API calls, costing approximately \$6. \sys dramatically reduces these costs through multiple optimizations.
 
 \begin{figure}[h]
 \centering

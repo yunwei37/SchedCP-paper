@@ -2,7 +2,7 @@
 
 \subsection{MCP Server Implementation}
 
-Our MCP (Model Context Protocol) server provides the interface between AI agents and the production system. Built with Python FastAPI, it exposes RESTful endpoints for workload submission, scheduler retrieval, and performance monitoring. WebSocket support enables real-time metric streaming for continuous optimization. Authentication via API keys and rate limiting prevent abuse while allowing multiple agents to share the infrastructure. The server implements request prioritization based on SLAs, ensuring critical workloads receive timely optimization. All operations are logged for audit trails, capturing agent decisions and performance impacts for post-mortem analysis.
+MCP server in \sys server provides the interface between AI agents and the production system. Built with Python FastAPI, it exposes RESTful endpoints for workload submission, scheduler retrieval, and performance monitoring. WebSocket support enables real-time metric streaming for continuous optimization. Authentication via API keys and rate limiting prevent abuse while allowing multiple agents to share the infrastructure. The server implements request prioritization based on SLAs, ensuring critical workloads receive timely optimization. All operations are logged for audit trails, capturing agent decisions and performance impacts for post-mortem analysis.
 
 \subsection{Scheduler Library Management}
 
@@ -14,7 +14,7 @@ Our pipeline transforms AI intent into deployable schedulers through multiple st
 
 \subsection{Safety Implementation}
 
-Safety permeates every layer of our implementation. The validation pipeline implements defense-in-depth: syntax checking with clang-format ensures well-formed code, BPF verifier pre-check simulates kernel verification catching common issues early, resource analysis proves bounded execution avoiding infinite loops, and security scanning detects potential vulnerabilities. Runtime protection includes automatic fallback mechanisms reverting to CFS on anomalies, performance monitoring with configurable thresholds triggering alerts, resource quotas preventing runaway consumption, and comprehensive audit logging for debugging and compliance. Our gradual rollout system tests schedulers on increasing workload percentages, monitoring key metrics at each stage before full deployment.
+Safety permeates every layer of \sys. The validation pipeline implements defense-in-depth: syntax checking with clang-format ensures well-formed code, BPF verifier pre-check simulates kernel verification catching common issues early, resource analysis proves bounded execution avoiding infinite loops, and security scanning detects potential vulnerabilities. Runtime protection includes automatic fallback mechanisms reverting to CFS on anomalies, performance monitoring with configurable thresholds triggering alerts, resource quotas preventing runaway consumption, and comprehensive audit logging for debugging and compliance. Our gradual rollout system tests schedulers on increasing workload percentages, monitoring key metrics at each stage before full deployment.
 
 \subsection{Key Technical Challenges and Solutions}
 
@@ -62,7 +62,7 @@ We treat AI code as potentially hostile, applying defense-in-depth to prevent si
 Validating AI scheduler performance exceeds traditional benchmarking requirements. Scheduler performance is workload-dependent—excellence in web serving might mean poor scientific computing performance. Performance spans latency, throughput, fairness, and power efficiency, with workloads prioritizing differently. We must detect subtle regressions absent from synthetic benchmarks but impacting real applications. Schedulers might show excellent averages while having latency spikes unsuitable for real-time use. Validation itself cannot become a bottleneck—comprehensive testing traditionally takes hours or days.
 
 \subsubsection{Solution}
-Our validation balances thoroughness with efficiency, ensuring only schedulers that meet or exceed human expert performance reach production.
+\sys validation balances thoroughness with efficiency, ensuring only schedulers that meet or exceed human expert performance reach production.
 
 \textbf{Multi-Stage Validation}: Four stages catch different performance issues. First, microbenchmarks measure task enqueueing latency, scheduling decisions, and load balancing overhead in microseconds. Second, synthetic workloads stress different aspects—CPU-bound tests for throughput, I/O-bound tests for responsiveness, mixed tests for diverse handling. Third, real applications (web servers, databases, batch jobs) validate realistic performance. Finally, production shadowing runs schedulers alongside existing ones without enforcement for risk-free comparison. This completes in <30 minutes with comprehensive validation.
 
@@ -74,7 +74,7 @@ Our validation balances thoroughness with efficiency, ensuring only schedulers t
 \subsection{Implementation Details}
 
 \subsubsection{Technology Stack}
-Our stack balances performance, reliability, and productivity. The core framework uses Python 3.11+ for async handling of concurrent LLM requests and system operations. It supports multiple LLM providers: OpenAI GPT-4, Anthropic Claude, and local models via Ollama for deployment flexibility. BPF toolchain includes libbpf for programmatic interaction, bpftool for debugging, and clang-15+ for compilation. Monitoring uses Prometheus with custom exporters and OpenTelemetry for distributed tracing. Testing employs pytest for unit/integration tests, sysbench for benchmarks, and custom workload generators.
+\sys stack balances performance, reliability, and productivity. The core framework uses Python 3.11+ for async handling of concurrent LLM requests and system operations. It supports multiple LLM providers: OpenAI GPT-4, Anthropic Claude, and local models via Ollama for deployment flexibility. BPF toolchain includes libbpf for programmatic interaction, bpftool for debugging, and clang-15+ for compilation. Monitoring uses Prometheus with custom exporters and OpenTelemetry for distributed tracing. Testing employs pytest for unit/integration tests, sysbench for benchmarks, and custom workload generators.
 
 \subsubsection{Performance Optimizations}
 Performance optimization permeates every layer. Redis caching stores LLM responses, analysis results, and compilation artifacts, reducing redundant computation and API costs by 60\%. Intelligent expiration balances storage costs with hit rates. Parallel processing runs validation concurrently across cores and distributed systems. Incremental compilation tracks dependencies, rebuilding only changes and reducing compilation time by 80\%. Profile-guided optimization feeds runtime data back to generation—AI learns successful patterns and biases future generation toward them.

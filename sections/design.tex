@@ -41,7 +41,7 @@ Entries include complete eBPF kernel and userspace source code for immediate dep
 Example: compilation-aware scheduler prioritizes by dependency depth, achieving 1.8x kernel build speedup across 50 samples. Rich metadata enables intelligent selection and configuration by workload requirements.
 
 \subsubsection{Static Analysis \& Testing Framework}
-Our framework validates safety-critically before deployment. BPF verification pipeline pre-validates against kernel rules, checking for infinite loops and invalid memory access. It estimates verification complexity avoiding kernel loading timeouts, giving AI early code viability feedback.
+\sys validates safety-critically before deployment. BPF verification pipeline pre-validates against kernel rules, checking for infinite loops and invalid memory access. It estimates verification complexity avoiding kernel loading timeouts, giving AI early code viability feedback.
 
 Performance estimation uses static analysis predicting scheduler overhead. It analyzes instruction counts, branch complexity, cache patterns identifying bottlenecks. Early feedback helps AI refine implementations before production impact.
 
@@ -62,9 +62,9 @@ Real-time monitoring tracks scheduler metrics: decision latencies, queue depths,
 Low-overhead implementation prevents monitoring impact. eBPF probes enable zero-copy kernel collection, hardware counters provide cycle-accurate measurements, in-kernel aggregation reduces data volume. Enables continuous production monitoring without performance impact.
 
 \subsubsection{Unified Agent Extension Framework}
-Our framework standardizes interfaces for any AI agent optimizing schedulers, from open-source to proprietary. MCP server implements RESTful API for workload submission and scheduler retrieval, with streaming for real-time monitoring. Standardized formats ensure cross-model compatibility, allowing AI provider switches without system changes.
+\sys standardizes interfaces for any AI agent optimizing schedulers, from open-source to proprietary. \sys server implements RESTful API for workload submission and scheduler retrieval, with streaming for real-time monitoring. Standardized formats ensure cross-model compatibility, allowing AI provider switches without system changes.
 
-Tool library exposes atomic operations as endpoints and composite workflows as abstractions. Simple agents use high-level tools while sophisticated ones compose custom workflows from atomic operations. Framework supports custom tool registration for agent-specific extensions without core modifications.
+Tool library exposes atomic operations as endpoints and composite workflows as abstractions. Simple agents use high-level tools while sophisticated ones compose custom workflows from atomic operations. \sys supports custom tool registration for agent-specific extensions without core modifications.
 
 Safety governance ensures secure multi-tenant operation: role-based access restricts by agent capabilities and trust. Rate limiting prevents runaway resource exhaustion. Audit logging tracks AI actions for debugging/compliance. Resource quotas ensure fair sharing and prevent monopolization.
 
@@ -94,22 +94,22 @@ Knowledge transfer amplifies learning value. Lessons from one workload apply to 
 
 \subsection{Architecture Overview}
 
-Our architecture separates production from AI agent systems through defined interfaces. Production runs workloads under Linux kernel with sched\_ext, performance monitor daemon collects metrics. MCP server interfaces production and AI, exposing workload analysis and scheduler deployment tools.
+Our architecture separates production from AI agent systems through defined interfaces. Production runs workloads under Linux kernel with sched\_ext, performance monitor daemon collects metrics. \sys server interfaces production and AI, exposing workload analysis and scheduler deployment tools.
 
 AI agent system has: multi-layer RL LLM agent making decisions, scheduler library storing components, safety validation ensuring correctness. Modular design allows independent evolution maintaining stability. Production communicates via standardized APIs for seamless deployment, monitoring, and feedback without disrupting workloads.
 
 Agent workflow: (1) analyze workload characteristics, (2) search library for suitable schedulers, (3) decide to configure/modify/create schedulers, (4) validate safety and correctness, (5) deploy to production, (6) collect feedback for improvement. This ensures safe and effective optimization.
 
-Figure~\ref{fig:architecture} shows a placeholder for our system architecture diagram, illustrating how the production system interfaces with the AI agent system through the MCP server.
+Figure~\ref{fig:architecture} shows a placeholder for our system architecture diagram, illustrating how the production system interfaces with the AI agent system through the \sys server.
 
 \begin{figure}[h]
 \centering
 \fbox{\parbox{0.9\columnwidth}{\centering
 \vspace{2cm}
 System Architecture Diagram\\
-(Production System $\leftrightarrow$ MCP Server $\leftrightarrow$ AI Agent System)\\
+(Production System $\leftrightarrow$ \sys Server $\leftrightarrow$ AI Agent System)\\
 \vspace{2cm}
 }}
-\caption{System Architecture: Production system (top) interfaces with AI agent system (bottom) through MCP server. The AI agent selects, modifies, or generates schedulers based on workload analysis, with all code passing through safety validation before deployment.}
+\caption{System Architecture: Production system (top) interfaces with AI agent system (bottom) through \sys server. The AI agent selects, modifies, or generates schedulers based on workload analysis, with all code passing through safety validation before deployment.}
 \label{fig:architecture}
 \end{figure}
