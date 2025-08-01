@@ -1,0 +1,77 @@
+\section{The \sys\ Framework: System Design and Implementation}
+\label{sec:schedcp_framework}
+
+Our approach to agentic OS optimization is founded on a clean separation between the systems infrastructure and the AI logic. **\sys** is the systems framework, a stable and secure control plane that acts as an "API for OS optimization." It provides the essential tools and safety guarantees necessary for any AI agent to interact with the Linux kernel's scheduler without compromising stability. This section details its design principles, core components, and implementation.
+We are building a system interface that can be used by AI agents. Our core insight is that AI agents are fundamentally context engineering systems—they need sufficient information to make decisions but not so much that costs become prohibitive. This mirrors human experts performing optimization: they need the right tools to collect profiling data and implement policies with appropriate frameworks. As system researchers, our goal is not to design better AI agents, but to design better systems and interfaces that can be used by AI agents.
+
+\subsection{Design Principles}
+The design of \sys\ is governed by four key principles that ensure it is safe, efficient, and future-proof.
+
+\textbf{Decoupling and Role Separation}: A system tightly coupled to a specific AI model's capabilities will quickly become obsolete as models evolve. To ensure our framework is future-proof, we believe the system's role must be separated from the AI's. Our principle is to decouple ``what to optimize'' (the AI's domain) from ``how to observe and act'' (the system's domain). We treat the AI agent as a performance engineer using a stable set of tools provided by the system, allowing the framework to remain relevant even as AI capabilities advance.
+
+\textbf{Safety-First Interface Design}: Giving an autonomous agent direct control over a kernel component is inherently risky, as it can generate incorrect or even malicious code. Because system stability is non-negotiable, we cannot simply trust the agent to be cautious. Therefore, our core principle is to treat the AI as a potentially non-cautious actor and design defensive interfaces. The system must insulate itself from flawed or malicious agent-generated code by default, preventing catastrophic failures rather than relying on the agent to avoid them.
+
+\textbf{Context and Feedback Balance}: LLM agents are constrained by finite context windows and token costs, and their performance can degrade when flooded with irrelevant data—the ``signal is lost in the noise.'' This creates a fundamental tension between providing complete information and maintaining model focus. Our core principle is therefore adaptive context provisioning. We believe the framework must enable the agent to start with a minimal summary and progressively request more detailed information as needed, creating a crucial trade-off between cost and precision.
+
+\textbf{Composable Tool Architecture}: A rigid, prescriptive workflow would stifle an LLM's greatest strength: its ability to reason and devise novel solutions dynamically. To leverage this unique capability, we believe the framework must not be prescriptive. Following the original Unix philosophy, our principle is to provide a set of powerful, atomic tools and leave the complex workflow construction and planning to the agent's reasoning capabilities, allowing it to generate novel solutions.
+
+\subsection{Core Components and Implementation}
+\sys\ is implemented as a modular system providing a suite of services accessible via a central server.
+
+\subsubsection{Control Plane Server}
+The heart of \sys\ is a control plane server built with **Python FastAPI**. It provides the primary interface between the \agent\ system and the production system through **RESTful endpoints** for workload submission, policy deployment, and performance queries. For real-time data, it supports **WebSocket** streaming. The server manages security through **API key authentication** and includes **rate limiting** to prevent abuse.
+
+\subsubsection{Analysis Sandbox}
+To enable workload observation, \sys\ provides a secure **Analysis Sandbox**. This is a containerized environment where an agent can actively investigate a workload without risk to the host system. The sandbox grants access to the filesystem to read source code, Makefiles, and manifests. It also exposes a suite of atomic tools, including structured APIs like \texttt{get\_cpu\_stats()} and the ability to execute diagnostic shell commands like \texttt{git log}, \texttt{make}, \texttt{perf stat}, and \texttt{strace}.
+
+\subsubsection{Execution Gauntlet}
+The **Execution Gauntlet** is a critical safety service for validating all agent-generated code before deployment. It implements a defense-in-depth validation pipeline:
+\begin{itemize}
+    \item \textbf{Static Pre-flight Checks}: This layer performs syntax checking with \texttt{clang-format} and simulates the kernel's BPF verifier to catch safety violations early. It analyzes instruction counts and code paths to estimate potential scheduler overhead and scans for security vulnerabilities. Resource analysis is used to mathematically prove bounded execution time.
+    \item \textbf{Dynamic Sandbox Validation}: Valid code is compiled and run in a secure sandbox against a suite of unit, integration, and stress tests to confirm logical correctness and ensure performance meets the stated goals.
+    \item \textbf{Monitored Production Rollout}: Upon passing all checks, the gauntlet returns a deployment token. When the policy is deployed, a **Performance Monitor Daemon** continuously observes key metrics. If performance degrades beyond configurable thresholds or anomalies are detected, a **circuit breaker** triggers, automatically reverting to the last known-good scheduler (e.g., CFS). The system supports gradual rollouts, testing schedulers on increasing workload percentages before full deployment. It also enforces resource quotas to prevent runaway consumption and maintains comprehensive audit logs.
+\end{itemize}
+
+\subsubsection{Scheduler Knowledge Base}
+Serving as the system's long-term memory, the **Scheduler Knowledge Base** is a queryable library of scheduling policies. It is implemented using **Git** for version control of scheduler source code. Scheduler descriptions, performance characteristics, and other metadata are stored in **JSON** files. A **SQLite** database indexes historical performance metrics across different workloads and deployments for fast querying. To support natural language queries, we use **Sentence-BERT embeddings**, allowing agents to perform semantic searches for relevant policies. The base is self-evolving, with automatic indexing that extracts patterns from new schedulers and regression detection to maintain library quality.
+
+\section{\agent: A Multi-Agent Framework for OS Optimization}
+\label{sec:sched_agents}
+
+Building on the \sys\ foundation, we developed **\agent**, a multi-agent AI framework where specialized agents collaborate to perform the end-to-end task of scheduler optimization. This approach decomposes the complex reasoning process into manageable roles, mirroring an expert human team. Each agent corresponds to one of the four stages in our optimization loop: observation, planning, execution, and learning.
+
+\subsection{Agent Roles and Responsibilities}
+The \agent\ framework is composed of four distinct agents, each with a specialized role in the optimization loop, corresponding to the four stages of our control loop: Observation, Planning, Execution, and Learning.
+
+\subsubsection{Observation \& Analysis Agent - Building a Workload Profile}
+
+The **Observation Agent** enables the policy agent to perform a deep, semantic analysis of a workload and synthesize its findings into a structured ``Workload Profile.'' This profile serves as the foundational understanding and specification for all subsequent optimization steps. The agent pulls the information it needs, from high-level source code to low-level performance counters, ensuring it has the right context without being flooded. \sys provides the agent with access to a secure Analysis Sandbox, a containerized environment where the agent can actively investigate the workload using a wide array of tools, much like a human developer.
+
+Within the sandbox, the agent has multi-modal sensing capabilities including file system access to read source code, Makefiles, dependency manifests, and configuration files to understand the software's structure. Reflecting our composable tool principle, the sandbox provides atomic tools like \texttt{get\_cpu\_stats()} and \texttt{set\_scheduler\_param()}. The system imposes no fixed workflows; the agent dynamically decides tool sequences, enabling it to create new tool combinations for novel scenarios, such as generating custom analysis scripts on demand. It can execute diagnostic shell commands like \texttt{git log}, \texttt{make}, \texttt{perf stat}, and \texttt{strace} to observe the software's build process and runtime behavior. The agent can also call structured metric APIs for real-time performance data. The ultimate output is not raw data but a structured specification file containing a natural language summary of the workload's purpose, key performance characteristics and resource requirements, and explicit optimization goals that guide the next stage. Additionally, the agent can register callback URLs with the \sys Server, allowing our Performance Monitor Daemon to proactively notify the agent of critical events such as performance drops or workload phase changes, triggering new analysis cycles without polling.
+
+\subsubsection{Planning Agent - Policy Synthesis and Selection}
+
+The **Planning Agent** uses the Workload Profile generated in Stage 1 to synthesize a concrete optimization plan. The LLM is treated as a pluggable, autonomous agent whose job is to reason about what to do, not the low-level details of how to do it. \sys can work with any capable agent, and the agent's internal Decision Layer uses the rich, natural language goals and requirements from the Workload Profile to guide its strategy.
+
+To act efficiently, the agent typically first queries the Scheduler Knowledge Base, which serves as long-term memory containing a curated collection of production schedulers, a library of algorithm primitives, a suite of RL algorithms for finding parameters, and rich metadata with performance history. Using the profile's keywords to perform accurate semantic searches, the agent autonomously chooses one of three pathways: reconfigure an existing scheduler that is a perfect fit by providing new configuration parameters, revise a close match by retrieving source code and its Implementation Layer generates patches to adapt it, or generate a new scheduler from scratch using algorithm primitives as building blocks when no suitable scheduler exists.
+
+\subsubsection{Execution Agent - Validated Policy Deployment}
+
+The **Execution Agent** provides a secure service for the agent to validate and deploy its proposed policy without compromising system stability. This entire stage embodies treating AI as a potentially non-cautious actor, providing non-negotiable validation for all agent-generated code. The Execution Gauntlet is not a passive pipeline but a service the agent explicitly calls.
+
+When the agent has a code artifact, it first performs the code synthesis based on the plan from the Planning Agent. This may involve generating patches for existing schedulers or writing entirely new eBPF programs. The agent's implementation leverages \sys's code generation pipeline that transforms AI intent into deployable schedulers through template selection matching workload descriptions to proven patterns, workload-specific parameter injection for customization, and incremental compilation with feedback loops that use errors and test results to guide refinement.
+
+The agent then submits the code to the gauntlet, which runs the code through three validation layers. Static pre-flight checks simulate the kernel's BPF verifier to catch safety violations early, analyze instruction counts and code paths to estimate scheduler overhead, and allow the agent to call additional static analysis tools to validate intended behavior. Dynamic sandbox validation compiles and runs the proposed scheduler in a secure sandbox against unit, integration, and stress tests to validate logical correctness, measuring performance to ensure it meets Workload Profile goals before production deployment. For monitored production rollout, if the gauntlet is passed, it returns a deployment token to the agent, who then makes an explicit call to deploy the policy. The Performance Monitor Daemon continuously observes the new scheduler, and if key performance indicators degrade beyond thresholds, the circuit breaker triggers and the system automatically reverts to the last known-good scheduler.
+
+\subsubsection{Learning Agent - Performance Analysis and Knowledge Update}
+
+The **Learning Agent** translates the outcome of an action into durable, reusable knowledge, enabling the agent and system to improve over time. This ensures the loop is closed and that the cost of optimization decreases as the system gains experience. Performance metrics gathered after actuation constitute the reward signal, which the agent accesses via the Feedback Channel.
+
+The system processes this signal in two ways. For short-term, in-context learning, the agent calls a \texttt{get\_feedback} tool that returns a concise summary of the outcome, using this feedback to inform its next decision and effectively performing in-context reinforcement learning. For long-term system evolution, structured performance data updates the Scheduler Knowledge Base, refining historical metrics for the scheduler used. Highly successful, novel schedulers generated by the agent can be contributed back to the library, enriching the system's collective intelligence.
+
+
+\subsection{Example: Kernel Compilation}
+
+To illustrate how these four agents work together, consider a kernel compilation workload. The **Observation Agent** begins by analyzing the Linux kernel source tree, executing \texttt{make -j} to understand the build process, and running \texttt{perf stat} to profile resource usage. This observation produces a Workload Profile: ``CPU-intensive parallel compilation task with short-lived processes, inter-process dependencies, and a goal to minimize makespan.'' During planning, the **Planning Agent** queries the Knowledge Base with keywords like ``throughput'' and ``compilation,'' retrieving \texttt{scx\_rusty} as a starting point. It generates a patch to make the scheduler dependency-aware. In execution, the **Execution Agent** submits the patched code to the Execution Gauntlet for validation, receiving a deployment token upon success. Finally, after deployment, the **Learning Agent** receives feedback that the revision achieved a 45\% reduction in makespan, contributing the improved scheduler back to the Knowledge Base for future use. This entire workflow demonstrates how \agent\ enables AI agents to autonomously optimize system performance through iterative refinement.
+
+
