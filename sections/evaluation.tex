@@ -33,51 +33,17 @@ Performance Comparison: Baseline vs LLM vs RL-Enhanced\\
 \label{fig:performance-comparison}
 \end{figure}
 
-\subsection{Novel Scheduler Synthesis for Batch Workloads}
+\subsection{Scheduler Synthesis for Batch Workloads}
 
 Figure~\ref{fig:batch-performance} demonstrates AI-generated scheduler performance on batch workloads. For unit tests minimizing average wait time, the agent implements SJF scheduling achieving 45\% reduction. For compilation workloads, it implements LJF scheduling with 32\% improvement in makespan. Data analytics workloads see 29\% speedup with a hybrid approach. Claude Opus consistently identifies theoretically optimal strategies, validating the AI's understanding of scheduling principles.
 
 \begin{figure}[h]
 \centering
-\fbox{\parbox{0.9\columnwidth}{\centering
-\vspace{1.5cm}
-AI-Generated Scheduler Performance\\
-(Grouped bars: CFS vs AI-Generated with SJF/LJF labels)\\
-\vspace{1.5cm}
-}}
-\caption{AI-generated scheduler performance on batch workloads showing 30-50\% improvements through optimal algorithm selection.}
+\includegraphics[width=0.9\columnwidth]{sections/scheduler_performance_comparison.pdf}
+\caption{AI-generated scheduler performance on batch workloads.}
 \label{fig:batch-performance}
 \end{figure}
 
-\subsection{Cost Reduction and Optimization Efficiency}
+Beyond performance improvements, our framework achieves dramatic cost reductions through systematic optimizations. Generation time drops from 33 minutes to 5 minutes (85\% reduction). API calls decrease from 221 to 28 (87\% reduction). Monetary cost falls from \$6.00 to \$0.75 (88\% reduction). Success rate improves from 65\% to 95\% (+30pp improvement). These optimizations make AI-driven scheduler optimization economically viable for production deployment.
 
-Figure~\ref{fig:cost-reduction} illustrates dramatic cost reductions achieved through framework optimizations. Generation time drops from 33 minutes to 5 minutes (85\% reduction). API calls decrease from 221 to 28 (87\% reduction). Monetary cost falls from \$6.00 to \$0.75 (88\% reduction). Success rate improves from 65\% to 95\% (+30pp improvement). These optimizations make AI-driven scheduler optimization economically viable for production deployment.
-
-\begin{figure}[h]
-\centering
-\fbox{\parbox{0.9\columnwidth}{\centering
-\vspace{1.5cm}
-Cost Reduction Through Framework Optimizations\\
-(Multi-line graph: Time, API calls, Cost, Success rate)\\
-\vspace{1.5cm}
-}}
-\caption{Cost reduction through framework optimizations showing 85-88\% reduction across all metrics.}
-\label{fig:cost-reduction}
-\end{figure}
-
-\subsection{Workload Classification and Understanding}
-
-Figure~\ref{fig:workload-classification} presents a confusion matrix of workload classification accuracy. The system achieves 89.6\% overall accuracy across five categories: CPU-intensive, I/O-bound, Memory-intensive, Latency-critical, and Batch. Best performance occurs for latency-critical workloads (96\% accuracy) and CPU-intensive workloads (94\% accuracy). I/O-bound (86\%) and memory-intensive (82\%) workloads present greater classification challenges. Classification cost averages \$0.15 per analysis, making continuous optimization economically feasible.
-
-\begin{figure}[h]
-\centering
-\fbox{\parbox{0.9\columnwidth}{\centering
-\vspace{2cm}
-Workload Classification Confusion Matrix\\
-(Heatmap: CPU, I/O, Memory, Latency-critical, Batch)\\
-Overall Accuracy: 89.6\%\\
-\vspace{2cm}
-}}
-\caption{Confusion matrix of workload classification showing 89.6\% overall accuracy with best performance on latency-critical and CPU-intensive workloads.}
-\label{fig:workload-classification}
-\end{figure}
+The system also demonstrates strong workload classification capabilities, achieving 89.6\% overall accuracy across five categories: CPU-intensive, I/O-bound, Memory-intensive, Latency-critical, and Batch. Best performance occurs for latency-critical workloads (96\% accuracy) and CPU-intensive workloads (94\% accuracy). I/O-bound (86\%) and memory-intensive (82\%) workloads present greater classification challenges. Classification cost averages \$0.15 per analysis, making continuous optimization economically feasible.
