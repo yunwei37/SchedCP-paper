@@ -29,6 +29,7 @@ The **Execution Gauntlet** is a critical safety service for validating all agent
 \begin{itemize}
     \item \textbf{Static Pre-flight Checks}: This layer performs syntax checking with \texttt{clang-format} and simulates the kernel's BPF verifier to catch safety violations early. It analyzes instruction counts and code paths to estimate potential scheduler overhead and scans for security vulnerabilities. Resource analysis is used to mathematically prove bounded execution time.
     \item \textbf{Dynamic Sandbox Validation}: Valid code is compiled and run in a secure sandbox against a suite of unit, integration, and stress tests to confirm logical correctness and ensure performance meets the stated goals.
+
     \item \textbf{Monitored Production Rollout}: Upon passing all checks, the gauntlet returns a deployment token. When the policy is deployed, a **Performance Monitor Daemon** continuously observes key metrics. If performance degrades beyond configurable thresholds or anomalies are detected, a **circuit breaker** triggers, automatically reverting to the last known-good scheduler (e.g., CFS). The system supports gradual rollouts, testing schedulers on increasing workload percentages before full deployment. It also enforces resource quotas to prevent runaway consumption and maintains comprehensive audit logs.
 \end{itemize}
 
