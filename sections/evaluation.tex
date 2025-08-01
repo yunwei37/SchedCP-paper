@@ -15,7 +15,7 @@ We investigate five key research questions to validate the effectiveness and eff
 
 \subsection{Experimental Setup}
 
-We evaluate \sys on a 32-core AMD EPYC 7543 with 256GB DDR4-3200, NVMe SSDs, 10Gbps network, running Linux 6.12 with sched\_ext. We test Claude Code (Opus 4) and Gemini-cli (Gemini 2.5 Pro) as AI agents to validate framework generality.
+We evaluate \sys on an 86-core Intel Xeon 6787P with 758GB RAM, NVMe SSDs, 10Gbps network, running Linux 6.14 with sched\_ext. We test Claude Code (Opus 4) and Gemini-cli (Gemini 2.5 Pro) as AI agents to validate framework generality.
 
 \subsection{Performance Impact of AI-Driven Optimization}
 
@@ -23,12 +23,7 @@ Figure~\ref{fig:performance-comparison} shows performance improvements across th
 
 \begin{figure}[h]
 \centering
-\fbox{\parbox{0.9\columnwidth}{\centering
-\vspace{2cm}
-Performance Comparison: Baseline vs LLM vs RL-Enhanced\\
-(Grouped bar chart showing 30-80\% LLM gains + 10-12\% RL improvement)\\
-\vspace{2cm}
-}}
+\includegraphics[width=0.9\columnwidth]{sections/Linux_build_benchmark_results.pdf}
 \caption{Performance comparison of scheduler configurations with RL improvement showing initial LLM gains (30-80\%) and additional RL improvements (10-12\%).}
 \label{fig:performance-comparison}
 \end{figure}
