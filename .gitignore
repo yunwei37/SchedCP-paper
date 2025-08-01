@@ -42,3 +42,7 @@ out/
 
 # PDF output (uncomment if you don't want to track PDFs)
 # *.pdf
+
+# Extracted text files
+*.txt
+sample-sigconf.txt

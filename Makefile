@@ -35,4 +35,8 @@ cleanall: clean
 # Force recompilation
 force: clean all
 
-.PHONY: all clean cleanall force
+# Extract text from PDF to txt
+extract-text: $(MAIN).pdf
+	pdftotext $(MAIN).pdf $(MAIN).txt
+
+.PHONY: all clean cleanall force extract-text
