@@ -19,7 +19,7 @@ We evaluate \sys on a 32-core AMD EPYC 7543 with 256GB DDR4-3200, NVMe SSDs, 10G
 
 \subsection{Performance Impact of AI-Driven Optimization}
 
-Figure~\ref{fig:performance-comparison} shows performance improvements across three stages: baseline CFS, LLM-configured schedulers, and RL-improved configurations. For schbench, the LLM achieves 50\% lower p99 latency and 30\% higher throughput by selecting scx\_layered. Linux kernel build shows 80\% speedup from 312s to 173s using scx\_rusty. The LLM correctly identifies workload characteristics in 85\% of cases. RL optimization adds 10-12\% additional gain beyond LLM configuration, with total improvements of 25-27\% over baseline CFS. Convergence occurs within 50-60 episodes of RL training.
+Figure~\ref{fig:performance-comparison} shows performance improvements across three stages: baseline CFS, LLM-configured schedulers, and RL-improved configurations. For schbench, the LLM achieves 50\% lower p99 latency and 30\% higher throughput by selecting scx\_layered. Linux kernel build shows 80\% speedup from 10s to 6s using scx\_rusty. The LLM correctly identifies workload characteristics in both cases. RL-like multi attempt optimization adds 10-12\% additional gain beyond LLM configuration, with total improvements of 25-27\% over baseline CFS.
 
 \begin{figure}[h]
 \centering
@@ -44,6 +44,6 @@ Figure~\ref{fig:batch-performance} demonstrates AI-generated scheduler performan
 \label{fig:batch-performance}
 \end{figure}
 
-Beyond performance improvements, our framework achieves dramatic cost reductions through systematic optimizations. Generation time drops from 33 minutes to 5 minutes (85\% reduction). API calls decrease from 221 to 28 (87\% reduction). Monetary cost falls from \$6.00 to \$0.75 (88\% reduction). Success rate improves from 65\% to 95\% (+30pp improvement). These optimizations make AI-driven scheduler optimization economically viable for production deployment.
+Beyond performance improvements, our framework achieves dramatic cost reductions through systematic optimizations. Generation time drops from 33 minutes to 5 minutes (85\% reduction). API calls decrease from 221 to 28 (87\% reduction). Monetary cost falls from \$6.00 to \$0.75 (88\% reduction). All the 8 cases are generated successfully.
 
-The system also demonstrates strong workload classification capabilities, achieving 89.6\% overall accuracy across five categories: CPU-intensive, I/O-bound, Memory-intensive, Latency-critical, and Batch. Best performance occurs for latency-critical workloads (96\% accuracy) and CPU-intensive workloads (94\% accuracy). I/O-bound (86\%) and memory-intensive (82\%) workloads present greater classification challenges. Classification cost averages \$0.15 per analysis, making continuous optimization economically feasible.
+The system also demonstrates strong workload classification capabilities. We find that claude opus 4 can successfully identify the requirements for the LJF scheduling, while claude sonnet 4 cannot. Classification cost averages \$0.15 per analysis, making continuous optimization economically feasible.
