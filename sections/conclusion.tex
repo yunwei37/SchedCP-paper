@@ -1,4 +1,11 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-We present \sys, the first framework for using fully automatic LLM agents to dynamically optimize Linux schedulers. By maintaining a self-evolving library of schedulers and leveraging reinforcement learning for continuous improvement, our system achieves significant performance gains while reducing the expertise required for OS optimization. This work opens new possibilities for adaptive, application-aware operating systems that can automatically optimize themselves for changing workloads. This work has implications beyond schedulers. As AI agents become more powerful, the interfaces we design today will shape how AI interacts with systems software tomorrow. \sys demonstrates that with proper design, AI can democratize system optimization—making expert-level performance accessible to users from cloud operators to gamers, while paving the way for truly self-optimizing operating systems.
+In this paper, we introduced \sys, the first framework designed to empower autonomous LLM agents to safely and efficiently optimize Linux schedulers. Our core contribution is a decoupled control plane architecture that cleanly separates the AI's role of semantic reasoning from the system's role of safe execution, bridging the critical semantic gap between application needs and kernel policy. We demonstrated through \agent that this approach not only achieves significant performance improvements up to a 1.79× speedup and an 88\% cost reduction over naive agentic methods, but also maintains system stability by autonomously synthesizing and deploying custom eBPF scheduling policies. By providing a stable, verifiable interface for AI-driven optimization, SchedCP represents a foundational step towards a new generation of agentic, self-optimizing operating systems that are truly application-aware.
+
+
+
+
+
+
+
