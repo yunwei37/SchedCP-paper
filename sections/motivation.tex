@@ -1,6 +1,8 @@
 \section{Motivation}
 \label{sec:motivation}
 
+We motivate our work by examining this semantic gap and the practical safety, performance, and cost issues revealed by our experiments.
+
 \subsection{The Semantic Gap Problem}
 
 \textbf{Domain Knowledge Gap between developer and user}: In cloud environments, DevOps engineers configuring Kubernetes lack insight into workload characteristics (latency-sensitive vs. throughput-oriented), resulting in conservative scheduling. Edge and personal devices face worse challenges. Gamers, creative professionals, and office workers lack kernel expertise for optimization. LLMs can bridge this gap by understanding high-level workload patterns from source code and deployment artifacts, and translating them into concrete scheduling policies.
@@ -11,8 +13,8 @@
 
 \subsection{Motivation Experiment}
 
-We tested Claude Code with "write a FIFO scheduler in eBPF" from an empty folder, with all permissions and bash access. Of three attempts, only one succeeded. The second attempt produced pseudo-code after 6 minutes trying, and the third generated a scheduler tracer instead after 8 minutes development. The successful generation required 33 minutes, 221 API calls, and 15+ iterations, costing \$6 (vs. 5 minutes typically for an expert developer). The generated code, for some workloads, exhibited poor quality with excessive overhead, performing worse than CFS. The agent required root access, could crash the system during testing, and lacked gradual rollout mechanisms, which also raises safety concerns.
+We tested Claude Code\cite{claudecode}, the state of the art LLM agent, with "write a FIFO scheduler in eBPF" from an empty folder, with all permissions and bash access. Of three attempts, only one succeeded. The second attempt produced pseudo-code after 6 minutes trying, and the third generated a scheduler tracer instead after 8 minutes development. The successful generation required 33 minutes, 221 LLM API calls, and 15+ iterations, costing \$6 (vs. 5 minutes typically for an expert developer). The generated code, for some workloads, exhibited poor quality with excessive overhead, performing worse than CFS. The agent required root access, could crash the system during testing, and lacked gradual rollout mechanisms, which also raises safety concerns.
 
 \subsection{Challenges in Applying LLM Agents to Schedulers}
 
-Our experiments reveal critical challenges for AI-driven scheduler optimization, especially when fully automated: \textbf{Performance}: How do we ensure AI-generated or configured schedulers outperform existing ones rather than degrading performance? \textbf{Safety}: How do we prevent kernel crashes, soft-lockups, stalls, or starvation while maintaining stability? How can we ensure only minimal privilege needed when development and deployment? \textbf{Efficiency}: The 33-minute generation time must drop to minutes for practical deployment, and the \$6 cost must decrease for economically viable workload-specific optimization. The optimization is only meaningful if the cost of optimization is less than the saved cost of the workload. These challenges of balancing safety with performance and capability with cost motivate our design principles and architecture.
+Our experiments reveal critical challenges for AI-driven scheduler optimization, especially when fully automated: \textbf{Performance}: How do we ensure AI-generated or configured schedulers outperform existing ones rather than degrading performance? \textbf{Safety}: How do we prevent kernel crashes, soft-lockups, stalls, or starvation while maintaining stability? How can we ensure only minimal privilege needed when development and deployment? \textbf{Efficiency}: The 33-minute generation time and the \$6 cost must drop for practical deployment. The optimization is only meaningful if the cost of optimization is less than the saving cost of the workload. 

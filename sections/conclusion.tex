@@ -1,7 +1,7 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-In this paper, we introduced \sys, the first framework designed to empower autonomous LLM agents to safely and efficiently optimize Linux schedulers. Our core contribution is a decoupled control plane architecture that cleanly separates the AI's role of semantic reasoning from the system's role of safe execution, bridging the critical semantic gap between application needs and kernel policy. We demonstrated through \agent that this approach not only achieves significant performance improvements up to a 1.79× speedup and an 88\% cost reduction over naive agentic methods, but also maintains system stability by autonomously synthesizing and deploying custom eBPF scheduling policies. By providing a stable, verifiable interface for AI-driven optimization, SchedCP represents a foundational step towards a new generation of agentic, self-optimizing operating systems that are truly application-aware.
+We introduce \sys, the first framework for autonomous LLM agents to safely optimize Linux schedulers. Its decoupled control plane separates AI reasoning from safe system execution, bridging the gap between application needs and kernel policy. Our agent, \agent, achieved up to a 1.79× speedup and an 88\% cost reduction over naive approaches by autonomously generating and deploying custom eBPF scheduling policies while ensuring stability. SchedCP offers a stable interface for AI-driven optimization, marking a foundational step towards truly application-aware, self-optimizing operating systems.
 
 
 
