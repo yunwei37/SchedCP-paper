@@ -3,14 +3,13 @@
 
 \subsection{Research Questions}
 
-We investigate five key research questions to validate the effectiveness and efficiency of \sys:
+We investigate key research questions to validate the effectiveness and efficiency of \sys:
 
 \begin{itemize}
 \item \textbf{RQ1}: Can \sys effectively configure existing schedulers?
 \item \textbf{RQ2}: Can \sys generate new schedulers for specific workloads?
 \item \textbf{RQ3}: What is the cost and efficiency of \sys's scheduler generation?
 \item \textbf{RQ4}: How much can RL improve performance after initial generation?
-\item \textbf{RQ5}: How effectively can \sys understand workloads?
 \end{itemize}
 
 \subsection{Experimental Setup}
@@ -30,7 +29,7 @@ Figure~\ref{fig:performance-comparison} shows performance improvements across th
 
 \subsection{Scheduler Synthesis for Batch Workloads}
 
-Figure~\ref{fig:batch-performance} demonstrates AI-generated scheduler performance on batch workloads. For unit tests minimizing average wait time, the agent implements SJF scheduling achieving 45\% reduction. For compilation workloads, it implements LJF scheduling with 32\% improvement in makespan. Data analytics workloads see 29\% speedup with a hybrid approach. Claude Opus consistently identifies theoretically optimal strategies, validating the AI's understanding of scheduling principles.
+Figure~\ref{fig:batch-performance} demonstrates AI-generated scheduler performance on batch workloads.  Classification cost averages \$0.15 per analysis. We also observed the Agent based on Claude Opus can successfuly classify all the 8 workloads, while sonnet cannot. For unit tests minimizing average wait time, the agent implements SJF scheduling achieving 45\% reduction. For compilation workloads, it implements LJF scheduling with 32\% improvement in makespan. Data analytics workloads see 29\% speedup with a hybrid approach. Claude Opus consistently identifies theoretically optimal strategies, validating the AI's understanding of scheduling principles. .
 
 \begin{figure}[h]
 \centering
@@ -39,6 +38,4 @@ Figure~\ref{fig:batch-performance} demonstrates AI-generated scheduler performan
 \label{fig:batch-performance}
 \end{figure}
 
-Beyond performance improvements, our framework achieves dramatic cost reductions through systematic optimizations. Generation time drops from 33 minutes to 5 minutes (85\% reduction). API calls decrease from 221 to 28 (87\% reduction). Monetary cost falls from \$6.00 to \$0.75 (88\% reduction). Success rate improves from 65\% to 95\% (+30pp improvement). These optimizations make AI-driven scheduler optimization economically viable for production deployment.
-
-The system also demonstrates strong workload classification capabilities, achieving 89.6\% overall accuracy across five categories: CPU-intensive, I/O-bound, Memory-intensive, Latency-critical, and Batch. Best performance occurs for latency-critical workloads (96\% accuracy) and CPU-intensive workloads (94\% accuracy). I/O-bound (86\%) and memory-intensive (82\%) workloads present greater classification challenges. Classification cost averages \$0.15 per analysis, making continuous optimization economically feasible.
+Beyond performance improvements, our framework achieves dramatic cost reductions through systematic optimizations. Generation time drops from 33 minutes to 5 minutes (85\% reduction). API calls decrease from 221 to 28 (87\% reduction). Monetary cost falls from \$6.00 to \$0.75 (88\% reduction). These optimizations make AI-driven scheduler optimization economically viable for production deployment.
