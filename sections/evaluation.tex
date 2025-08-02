@@ -34,7 +34,9 @@ The Linux kernel build shows 1.63x speedup from 13.57s to 8.31s using scx\_rusty
 
 \subsection{Scheduler Synthesis for Batch Workloads}
 
-Figure~\ref{fig:batch-performance} demonstrates AI-generated scheduler performance on batch workloads.  Classification cost averages \$0.15 per analysis. We also observed the Agent based on Claude Opus can successfuly classify all the 8 workloads, while sonnet cannot. For unit tests minimizing average wait time, the agent implements SJF scheduling achieving 45\% reduction. For compilation workloads, it implements LJF scheduling with 32\% improvement in makespan. Data analytics workloads see 29\% speedup with a hybrid approach. Claude Opus consistently identifies theoretically optimal strategies, validating the AI's understanding of scheduling principles. .
+Figure~\ref{fig:batch-performance} demonstrates AI-generated scheduler performance on batch processing workloads. We selected 8 diverse workloads from real-world scenarios including file compression, video transcoding, software testing, and data analytics tasks, each configured with 40 parallel tasks (39 short tasks completing in seconds, 1 long task taking significantly longer) to create severe load imbalance typical of long-tail distributions. We execute tasks in parallel and calculate performance improvements for end to end latency. We observed the agent can consistently identifies the workload pattens, successfully identify the workload process, implement LJF scheduling and improve the performance for average 20\% reduction in end to end processing time.
+
+Classification cost averages \$0.15 per analysis. We also observed the Agent based on Claude Opus (A bigger and more powerful model for claude code) can successfuly classify all the 8 workloads, while a smaller model Claude sonnet cannot.
 
 \begin{figure}[h]
 \centering
