@@ -1,8 +1,18 @@
 3as\section{The \sys\ Framework: System Design and Implementation}
 \label{sec:schedcp_framework}
 
-Our approach to agentic OS optimization is founded on a clean separation between the systems infrastructure and the AI logic. \textbf{\sys} is the systems framework, a stable and secure control plane that acts as an "API for OS optimization." It provides the essential tools and safety guarantees necessary for any AI agent to interact with the Linux kernel's scheduler without compromising stability. This section details its design principles, core components, and implementation.
-We are building a system interface that can be used by AI agents. Our core insight is that AI agents are fundamentally context engineering systems. They need sufficient information to make decisions but not so much that costs become prohibitive. This mirrors human experts performing optimization: they need the right tools to collect profiling data and implement policies with appropriate frameworks. As system researchers, our goal is not to design better AI agents, but to design better systems and interfaces that can be used by AI agents. This is similar to provide a framework for reinforcement learning enviroments, where the agents can learn from it.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\columnwidth]{sections/img/arch-scheddcp.png}
+    \caption{
+        \textbf{The overall architecture, showing the separation of concerns between \sys\ and \agent.} 
+        The \textbf{\sys} framework (bottom) acts as a safe system interface, providing tools to analyze workloads, verify code, and manage scheduler policies in the Linux kernel via eBPF.
+        The \textbf{\agent} framework (top) contains the AI logic, where specialized agents for Observation, Planning, Execution, and Learning collaborate in a closed loop to autonomously create, deploy, and refine scheduling policies. The red line indicate the initialize process When \sys detects a new workload. The back arrow indicate the optimization loops, where \agent continue refines scheduler policies based on optimization plan and observation results.
+    }
+    \label{fig:frameworkarch}
+\end{figure}
+
+Our approach to agentic OS optimization is founded on a clean separation between the systems infrastructure and the AI logic, as illustrated in Figure~\ref{fig:frameworkarch}. We introduce \sys, a stable and secure control plane that acts as an 'API for OS optimization.' Our research is motivated by the insight that AI agents are fundamentally context engineering systems; like human experts, they need the right tools to gather information and act without being overwhelmed by prohibitive costs or irrelevant data. Therefore, as system researchers, our goal is not to build better AI agents, but to design superior systems and interfaces for them. \sys embodies this by providing the essential tools and safety guarantees for any agent to interact with the Linux kernel's scheduler, analogous to how a reinforcement learning framework provides an environment for an agent to learn. This section details \sys's design principles, core components, and implementation.
 
 \subsection{Design Principles}
 The design of \sys\ is governed by four key principles that ensure it is safe, efficient, and future-proof.
