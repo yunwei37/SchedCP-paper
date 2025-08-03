@@ -1,4 +1,4 @@
-3as\section{The \sys\ Framework Design and Implementation}
+\section{The \sys\ Framework Design and Implementation}
 \label{sec:schedcp_framework}
 
 \begin{figure}
@@ -37,13 +37,15 @@ The design of \sys\ is governed by four key principles that ensure it is safe, e
 \section{\agent: A Multi-Agent Framework for OS Optimization}
 \label{sec:sched_agents}
 
-Building on \sys, we developed \textbf{\agent}, a multi-agent AI framework for scheduler optimization. We implemented it using Claude Code's subagent architecture~\cite{anthropic2024subagents}, which provides specialized AI assistants with customized system prompts, tools, and separate context windows~\cite{anthropic2024multiagent}. This decomposes complex reasoning into manageable roles, mirroring expert human teams. Each agent handles one optimization stage: observation, planning, execution, and learning.
+Building on \sys, we developed \textbf{\agent}, a multi-agent AI framework for scheduler optimization. We implemented it using Claude Code's subagent architecture~\cite{anthropic2024subagents}, which provides specialized AI assistants with customized system prompts, tools, and separate context windows~\cite{anthropic2024multiagent}. This decomposes complex reasoning into manageable roles, mirroring expert human teams. Each agent handles one optimization stage: observation, planning, execution, and learning. 
+
+To automatically trigger optimization, \sys integrates with container orchestrators and runtime like Kubernetes and Docker, enabling it to initiate the \agent's analysis cycle whenever a user deploys a new application. It can also be trigger mannually by user.
 
 \subsection{Agent Roles and Responsibilities}
 
 \subsubsection{Observation \& Analysis Agent - Building a Workload Profile}
 
-The \textbf{Observation Agent} builds a comprehensive ``Workload Profile'' by strategically querying the Workload Analysis Engine. Its reasoning process determines the analysis sequence: starting with high-level summaries, then requesting deeper profiling based on initial findings. For example, after identifying a parallel build process through initial queries, the agent decides to request CPU statistics via \texttt{perf stat} and dependency traces via \texttt{strace}. The agent synthesizes these data points into a description of the workload in natural language, quantified performance characteristics, and explicit optimization goals. It manages the cost-precision tradeoff by requesting only essential information and can register for event notifications to trigger re-analysis when workload patterns change.
+The \textbf{Observation Agent} builds a comprehensive ``Workload Profile'' by strategically querying the Workload Analysis Engine. Its reasoning process determines the analysis sequence: starting with high-level summaries, then requesting deeper profiling based on initial findings. For example, after identifying a parallel build process through initial queries, the agent decides to request CPU statistics via \texttt{perf stat} and dependency traces via \texttt{strace}. The agent synthesizes these data points into a description of the workload in natural language, quantified performance characteristics, and explicit optimization goals. It manages the cost-precision tradeoff by requesting only essential information and can register for event notifications in \sys to trigger re-analysis when workload patterns change.
 
 \subsubsection{Planning Agent - Policy Synthesis and Selection}
 
