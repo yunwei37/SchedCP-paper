@@ -28,8 +28,17 @@ The Linux kernel build benchmark compile the kernel 6.14 with tinyconfig and ``m
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.9\columnwidth]{sections/Linux_build_benchmark_results.pdf}
-\caption{Performance comparison of scheduler configurations.}
+\caption{Performance comparison of scheduler configurations in Linux build benchmark.}
 \label{fig:performance-comparison}
+\end{figure}
+
+We further evaluate \sys's performance optimization capabilities on machine 2 using schbench~\cite{schbench2016}, a scheduler benchmark designed to measure wakeup latency and throughput under production-like workloads. Figure~\ref{fig:schbench-comparison} illustrates the performance comparison across three configurations: default Linux EEVDF, initial scheduler selection (scx\_bpfland), and iterative optimization (scx\_rusty after 3 iterations). The results demonstrate significant performance improvements through our iterative approach. While the first attempt with scx\_bpfland underperformed the baseline with 13\% worse P99 latency (46.1ms vs 40.3ms) and 19\% lower throughput (741 vs 910 requests/second), the agent's iterative refinement process identified scx\_rusty as a superior choice. After three iterations, scx\_rusty achieved a 2.11× improvement in P99 latency (19.1ms) and 1.60× higher throughput (1452 requests/second) compared to the default EEVDF scheduler. This substantial performance gain highlights the effectiveness of our agent's ability to learn from performance feedback and select appropriate schedulers for specific workload characteristics.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\columnwidth]{sections/schbench_performance_comparison.pdf}
+\caption{Schbench performance comparison showing P99 latency and throughput improvements through iterative scheduler optimization.}
+\label{fig:schbench-comparison}
 \end{figure}
 
 \subsection{Scheduler Synthesis for Batch Workloads}
