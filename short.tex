@@ -153,7 +153,7 @@ We investigate key research questions to validate the effectiveness and efficien
 \end{figure}
 
 
-\textbf{New Scheduler Synthesis}: For 8 diverse batch workloads (e.g. file compression, video transcoding, software testing, and data analytics tasks) with long-tail distributions (40 parallel tasks: 39 short, one long), \agent correctly identified the optimization goal, workload pattern and implemented Longest Job First (LJF) scheduling, achieving 20\% average reduction in processing time (Figure~\ref{fig:batch-performance}). The cost for analysis averaged \$0.15 per workload. We note that the powerful Claude Opus agent successfully classified and analyzed all 8 workloads, whereas the smaller Claude Sonnet model could not. Generation costs also improved from our initial experiments: time reduced 13× (33 to 2.5 minutes) and cost dropped from \$6 to \$0.45 per workload, demonstrating both performance gains and economic viability.
+\textbf{New Scheduler Synthesis}: For 8 diverse batch workloads (e.g. file compression, video transcoding, software testing, and data analytics tasks) with long-tail distributions (40 parallel tasks: 39 short, one long), \agent correctly identified the optimization goal, workload pattern and implemented Longest Job First (LJF) scheduling, achieving 20\% average reduction in processing time (Figure~\ref{fig:batch-performance}). The powerful Claude Opus agent successfully classified and analyzed all 8 workloads at \$0.15 per workload analysis, whereas the smaller Claude Sonnet model could not. Generation efficiency improved 13× (to 2.5 minutes) with synthesis costs of \$0.45 per workload, demonstrating both performance gains and economic viability.
 
 
 % \section{Discussion}
