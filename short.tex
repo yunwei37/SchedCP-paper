@@ -85,7 +85,6 @@ This architectural separation is fundamental to our approach. \sys\ embodies our
     \item \textbf{Evaluation}: We demonstrate that \agent\ achieves up to 1.79× performance gains on kernel compilation, 2.11× P99 latency improvement and 1.60× throughput gain on schbench, 20\% average latency reduction for batch workloads, and 13× lower cost compared to naive approaches, while maintaining system stability across diverse workloads.
 \end{itemize}
 
-Paper organization: Background (§\ref{sec:background}), Motivation (§\ref{sec:motivation}), \sys (§\ref{sec:schedcp_framework}), \agent (§\ref{sec:sched_agents}), Evaluation (§\ref{sec:evaluation}), Related Work (§\ref{sec:related}), Future Work (§\ref{sec:future}), and Conclusion (§\ref{sec:conclusion}).
 \section{Background}
 \label{sec:background}
 
@@ -105,11 +104,7 @@ We motivate our work by examining this semantic gap problem and the practical sa
 
 \subsection{The Semantic Gap Problem}
 
-\textbf{Domain Knowledge Gap between developer and user}: In cloud environments, DevOps engineers configuring Kubernetes lack insight into workload characteristics (latency-sensitive vs. throughput-oriented), resulting in conservative scheduling. Edge and personal devices face worse challenges. Gamers, creative professionals, and office workers lack kernel expertise for optimization. LLMs can bridge this gap by understanding high-level workload patterns from source code and deployment artifacts, and translating them into concrete scheduling policies.
-
-\textbf{Technical Complexity of Scheduler Development}: Linux scheduler development requires mastering kernel programming with lock-free structures, eBPF verification constraints, and CPU/NUMA architectures. This steep learning curve limits innovation to few kernel experts. LLMs with pre-trained domain knowledge enable rapid and automated scheduler development without human expertise.
-
-\textbf{Dynamic Workload Adaptation}: Modern workloads exhibit complex phase behavior: ML training alternates between compute-intensive forward propagation and communication-heavy gradient synchronization; web traffic varies by orders of magnitude daily; build system parallelism changes with dependencies. Manual reconfiguration and optimization cannot keep pace, while AI agents can adapt policies in real-time, operating 24/7 without breaks, much more availability than human experts.
+The semantic gap manifests in three critical dimensions. First, a domain knowledge gap exists between developers and users: in cloud environments, DevOps engineers configuring Kubernetes lack insight into workload characteristics (latency-sensitive vs. throughput-oriented), resulting in conservative scheduling, while edge and personal device users like gamers, creative professionals, and office workers lack kernel expertise for optimization. Second, the technical complexity of scheduler development requires mastering kernel programming with lock-free structures, eBPF verification constraints, and CPU/NUMA architectures, a steep learning curve that limits innovation to few kernel experts. Third, modern workloads exhibit complex dynamic phase behavior: ML training alternates between compute-intensive forward propagation and communication-heavy gradient synchronization, web traffic varies by orders of magnitude daily, and build system parallelism changes with dependencies. LLMs can bridge these gaps by understanding high-level workload patterns from source code and deployment artifacts, translating them into concrete scheduling policies, enabling rapid automated scheduler development without human expertise, and adapting policies in real-time while operating 24/7 without breaks—providing much greater availability than human experts.
 
 \subsection{Economic Viability of AI-Driven Scheduler Optimization}
 
@@ -178,7 +173,8 @@ The \textbf{Learning Agent} completes the in-context reinforcement learning loop
 
 \subsection{Example: Kernel Compilation}
 
-To illustrate how these four agents work together, consider a kernel compilation workload. The \textbf{Observation Agent} begins by analyzing the Linux kernel source tree, executing \texttt{make -j} to understand the build process, and running \texttt{perf stat} to profile resource usage. This observation produces a Workload Profile: ``CPU-intensive parallel compilation task with short-lived processes, inter-process dependencies, and a goal to minimize makespan.'' During planning, the \textbf{Planning Agent} queries the Scheduler Policy Repository with keywords like ``throughput'' and ``compilation,'' retrieving \texttt{scx\_rusty} as a starting point. It generates a patch to make the scheduler dependency-aware. In execution, the \textbf{Execution Agent} submits the patched code to the Execution Verifier for validation, receiving a deployment token upon success. Finally, after deployment, the \textbf{Learning Agent} receives feedback that the revision achieved a 45\% reduction in makespan, contributing the improved scheduler back to the Scheduler Policy Repository for future use. This entire workflow demonstrates how \agent\ enables AI agents to autonomously optimize system performance through iterative refinement.
+To illustrate how these four agents work together, consider a kernel compilation workload. The \textbf{Observation Agent} begins by analyzing the Linux kernel source tree, executing \texttt{make -j} to understand the build process, and collecting resource usage like CPU, memory. This observation produces a Workload Profile: ``CPU-intensive parallel compilation task with short-lived processes, inter-process dependencies, and a goal to minimize makespan.'' During planning, the \textbf{Planning Agent} queries the Scheduler Policy Repository with keywords like ``throughput'' and ``compilation,'' retrieving \texttt{scx\_rusty} as a starting point. It generates a patch to make the scheduler dependency-aware. In execution, the \textbf{Execution Agent} submits the patched code to the Execution Verifier for validation, receiving a deployment token upon success. Finally, after deployment, the \textbf{Learning Agent} receives feedback that the revision achieved a 45\% reduction in makespan, contributing the improved scheduler back to the Scheduler Policy Repository for future use. This entire workflow demonstrates how \agent\ enables AI agents to autonomously optimize system performance through iterative refinement.
+
 \section{Evaluation}
 \label{sec:evaluation}
 
@@ -234,10 +230,6 @@ We evaluate the \sys and \agent's ability of effectively configure existing sche
 \label{fig:combined-performance}
 \end{figure}
 
-
-\section{Related Work}
-\label{sec:related}
-
 We further evaluate \sys on machine 2 using schbench~\cite{schbench2016}, a scheduler benchmark measuring wakeup latency and throughput. Figure~\ref{fig:schbench-comparison} compares three configurations: default EEVDF, initial selection (scx\_bpfland), and iterative optimization (scx\_rusty after 3 iterations). While AI configured scheduler initially underperformed with 13\% worse P99 latency (46.1ms vs 40.3ms) and 19\% lower throughput (741 vs 910 req/s), AI iterative refinement identified scx\_rusty as superior. After three iterations, scx\_rusty achieved 2.11× better P99 latency (19.1ms) and 1.60× higher throughput (1452 req/s) versus EEVDF, demonstrating our agent's effective learning from performance feedback.
 
 \subsection{Scheduler Synthesis for Batch Workloads}
@@ -245,16 +237,10 @@ We further evaluate \sys on machine 2 using schbench~\cite{schbench2016}, a sche
 Figure~\ref{fig:batch-performance} evaluates the \sys  and \agent  ability of generating new and better scheduler from scratch on 8 diverse batch workloads (e.g. file compression, video transcoding, software testing, and data analytics tasks) running on machine 2. To simulate a long-tail distribution, each workload comprised 40 parallel tasks: 39 short and one significantly longer, each as a python script or C/C++ program. The agent consistently identified this pattern, implemented a Longest Job First (LJF) scheduling policy, and achieved an average 20\% reduction in end-to-end processing time. The cost for this analysis averaged \$0.15 per workload, based on Claude Opus 4 pricing from August 2025. We note that the powerful Claude Opus agent successfully classified all 8 workloads, whereas the smaller Claude Sonnet model could not. In addition to performance gains, our framework's optimizations reduced generation costs per iteration: time fell from 33 to 2.5 minutes (a 13x reduction), and the monetary cost dropped from \$6 to \$0.5.
 
 
-Machine learning has a history of optimizing systems, including learned indexes~\cite{kraska2018learned}, database tuning~\cite{marcus2019neo,vanaken2017ottertune}, and RL-based job schedulers~\cite{mao2019decima,qiu2020firm,zhang2024mrsch} supported by platforms like Park~\cite{mao2019park}. However, these methods require extensive training, lack the semantic understanding to transfer knowledge across diverse workloads, or need human specify high level optimization goals. While recent work has applied LLMs to system diagnostics~\cite{wang2024llmsys} and  code generation~\cite{wei2024mapper,10.1145/3672197.3673434}, our work is the first to use an autonomous agent to design, configure and generate kernel schedulers, and apply them for end-to-end system optimization without human involvement. By leveraging LLM Agent reasoning, tool usage with sched\_ext and eBPF, our framework uniquely bridges the semantic gap between application needs and system policy.
-\section{Future Work}
-\label{sec:future}
+\section{Discussion}
+\label{sec:discussion}
 
-While \sys demonstrates the viability of AI-driven scheduler optimization, extending our framework beyond schedulers to cache policies, DVFS, network configuration, and sysctl parameters presents immediate opportunities for a unified OS optimization framework. Cross-component optimization, where CPU, memory, I/O, and power decisions inform each other, could unlock significant performance gains through new abstractions for expressing inter-component dependencies. This work opens new possibilities for adaptive, application-aware operating systems that can automatically optimize themselves for changing workloads, making expert-level performance accessible to all users.
-\section{Conclusion}
-\label{sec:conclusion}
-
-We introduce \sys, the first framework for autonomous LLM agents to safely optimize Linux schedulers. Its decoupled control plane separates AI reasoning from safe system execution, bridging the gap between application needs and kernel policy. Our agent, \agent, achieved up to a 1.79× speedup and a 13x cost reduction over naive approaches by autonomously generating and deploying custom eBPF scheduling policies while ensuring stability. SchedCP offers a stable interface for AI-driven optimization, marking a foundational step towards truly application-aware, self-optimizing operating systems.
-
+While prior ML approaches to system optimization, including learned indexes~\cite{kraska2018learned}, database tuning~\cite{marcus2019neo,vanaken2017ottertune}, and RL-based schedulers~\cite{mao2019decima,qiu2020firm,zhang2024mrsch,mao2019park}, require extensive training and lack semantic understanding to transfer across workloads, and recent LLM work focused on diagnostics~\cite{wang2024llmsys} and code generation~\cite{wei2024mapper,10.1145/3672197.3673434}, ours is the first to enable autonomous agents to design, configure, and generate kernel schedulers for end-to-end optimization. By leveraging LLM reasoning with sched\_ext and eBPF, \sys uniquely bridges the semantic gap between applications and system policy. Looking forward, extending our framework beyond schedulers to cache policies, DVFS, network configuration, and sysctl parameters presents opportunities for unified OS optimization, where cross-component decisions (CPU, memory, I/O, power) could unlock further gains through new inter-component dependency abstractions, enabling self-optimizing operating systems that democratize expert-level performance.
 
 \bibliographystyle{plain}
 \bibliography{sample-base}
