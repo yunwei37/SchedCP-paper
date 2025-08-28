@@ -1,7 +1,7 @@
 # Makefile for LaTeX compilation
 
 # Main document name (without .tex extension)
-MAIN = sample-sigconf
+MAIN = short
 
 # LaTeX compiler
 LATEX = pdflatex

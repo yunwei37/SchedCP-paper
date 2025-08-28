@@ -19,6 +19,7 @@
 *.dvi
 *.ps
 sample-sigconf.pdf
+/root/yunwei37/SchedCP-paper/short.pdf
 
 # Bibliography temporary files
 *.bib.bak
