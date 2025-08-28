@@ -28,6 +28,7 @@
 \usepackage[english]{babel} 
 \usepackage{url}
 \usepackage{graphicx}
+\usepackage{subcaption}     % For subfigures
 
 
 \usepackage{hyperref}       % hyperlinks
@@ -43,14 +44,14 @@
 
 
 
-\author{%
-  Yusheng Zheng$^{1}$ \quad
-  Yanpeng Hu$^{2}$ \quad
-  Andi Quinn$^{1}$ \\
-  $^{1}$UC Santa Cruz, CA, USA \quad
-  $^{2}$ShanghaiTech University, Shanghai, China \\
-  \texttt{\{yzhen165, aquinn1\}@ucsc.edu, huyp@shanghaitech.edu.cn}
-}
+% \author{%
+%   Yusheng Zheng$^{1}$ \quad
+%   Yanpeng Hu$^{2}$ \quad
+%   Andi Quinn$^{1}$ \\
+%   $^{1}$UC Santa Cruz, CA, USA \quad
+%   $^{2}$ShanghaiTech University, Shanghai, China \\
+%   \texttt{\{yzhen165, aquinn1\}@ucsc.edu, huyp@shanghaitech.edu.cn}
+% }
 \sloppy
 \begin{document}
 
@@ -138,15 +139,7 @@ Our experiments reveal critical challenges for AI-driven scheduler optimization,
 Our approach to agentic OS optimization is founded on a clean separation between the systems infrastructure and the AI logic, as illustrated in Figure~\ref{fig:frameworkarch}. We introduce \sys, a stable and secure control plane that acts as an 'API for OS optimization.' Our research is motivated by the insight that AI agents are fundamentally context engineering systems; like human experts, they need the right tools to gather information and act without being overwhelmed by prohibitive costs or irrelevant data. Therefore, as system researchers, our goal is not to build better AI agents, but to design superior systems and interfaces for them. \sys embodies this by providing the essential tools and safety guarantees for any agent to interact with the Linux kernel's scheduler, analogous to how an environment in reinforcement learning provides the state, actions, and rewards for an agent to learn. This section details \sys's design principles, core components, and implementation. \sys is implemented in ~4000 lines of Rust and ~6000 lines of python (Include tests).
 
 \subsection{Design Principles}
-The design of \sys\ is governed by four key principles that ensure it is safe, efficient, and future-proof.
-
-\textbf{Decoupling and Role Separation}: A system tightly coupled to a specific AI model's capabilities will quickly become obsolete as models evolve. To ensure our framework is future-proof, we believe the system's role must be separated from the AI's. Our principle is to decouple ``what to optimize'' (the AI's domain) from ``how to observe and act'' (the system's domain). We treat the AI agent as a performance engineer using a stable set of tools provided by the system, allowing the framework to remain relevant even as AI capabilities advance.
-
-\textbf{Safety-First Interface Design}: Autonomous agents with kernel access pose inherent risks. System stability is non-negotiable, so we treat AI as potentially non-cautious actors and design defensive interfaces. The framework prevents catastrophic failures by default rather than trusting agents to avoid them.
-
-\textbf{Context and Feedback Balance}: LLM agents face constraints from finite context windows and token costs. Performance degrades when flooded with irrelevant data. We address this through adaptive context provisioning: agents start with minimal summaries and progressively request details as needed, balancing cost against precision.
-
-\textbf{Composable Tool Architecture}: Rigid workflows stifle LLMs' ability to reason and devise novel solutions. Following Unix philosophy, we provide atomic tools and let agents construct complex workflows through their reasoning capabilities, enabling novel solution generation.
+The design of \sys\ is governed by four key principles that ensure it is safe, efficient, and future-proof. First, \textbf{decoupling and role separation} ensures that our framework remains future-proof by separating the system's role from the AI's—we decouple ``what to optimize'' (the AI's domain) from ``how to observe and act'' (the system's domain), treating the AI agent as a performance engineer using a stable set of tools provided by the system. Second, our \textbf{safety-first interface design} addresses the inherent risks of autonomous agents with kernel access by treating AI as potentially non-cautious actors and designing defensive interfaces that prevent catastrophic failures by default. Third, we \textbf{balance context and feedback} to address LLM agents' constraints from finite context windows and token costs through adaptive context provisioning, where agents start with minimal summaries and progressively request details as needed. Finally, our \textbf{composable tool architecture} follows Unix philosophy by providing atomic tools that let agents construct complex workflows through their reasoning capabilities, enabling novel solution generation rather than constraining them with rigid workflows.
 
 \subsection{Core Components and Implementation}
 \sys is engineered as a modular control plane, exposing its services to AI agents via the standard Model Context Protocol (MCP)~\cite{anthropic2024mcp}. This design cleanly separates the high-level policy orchestration managed by the agent from the low-level observation and execution handled by the framework, and avoids granting `root' privileges to the agent. The architecture consists of three primary services.
@@ -213,32 +206,44 @@ We evaluate the \sys and \agent's ability of effectively configure existing sche
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.9\columnwidth]{sections/Linux_build_benchmark_results.pdf}
-\caption{Performance comparison of scheduler configurations in Linux build benchmark.}
-\label{fig:performance-comparison}
+\begin{minipage}{0.48\textwidth}
+    \begin{subfigure}[b]{\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{sections/Linux_build_benchmark_results.pdf}
+        \caption{Linux build benchmark}
+        \label{fig:performance-comparison}
+    \end{subfigure}
+    \vspace{0.3cm}
+    \begin{subfigure}[b]{\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{sections/schbench_performance_comparison.pdf}
+        \caption{Schbench P99 latency and throughput}
+        \label{fig:schbench-comparison}
+    \end{subfigure}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+    \begin{subfigure}[b]{\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{sections/scheduler_performance_comparison.pdf}
+        \caption{Batch workloads performance}
+        \label{fig:batch-performance}
+    \end{subfigure}
+\end{minipage}
+\caption{Performance evaluation of \sys across different workloads: (a) Linux kernel compilation showing up to 1.79× speedup, (b) Schbench demonstrating 2.11× P99 latency improvement and 1.60× throughput gain through iterative optimization, and (c) AI-generated scheduler achieving 20\% average reduction in processing time for batch workloads.}
+\label{fig:combined-performance}
 \end{figure}
+
+
+\section{Related Work}
+\label{sec:related}
 
 We further evaluate \sys on machine 2 using schbench~\cite{schbench2016}, a scheduler benchmark measuring wakeup latency and throughput. Figure~\ref{fig:schbench-comparison} compares three configurations: default EEVDF, initial selection (scx\_bpfland), and iterative optimization (scx\_rusty after 3 iterations). While AI configured scheduler initially underperformed with 13\% worse P99 latency (46.1ms vs 40.3ms) and 19\% lower throughput (741 vs 910 req/s), AI iterative refinement identified scx\_rusty as superior. After three iterations, scx\_rusty achieved 2.11× better P99 latency (19.1ms) and 1.60× higher throughput (1452 req/s) versus EEVDF, demonstrating our agent's effective learning from performance feedback.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.9\columnwidth]{sections/schbench_performance_comparison.pdf}
-\caption{Schbench performance comparison showing P99 latency and throughput improvements through iterative scheduler optimization.}
-\label{fig:schbench-comparison}
-\end{figure}
 
 \subsection{Scheduler Synthesis for Batch Workloads}
 
 Figure~\ref{fig:batch-performance} evaluates the \sys  and \agent  ability of generating new and better scheduler from scratch on 8 diverse batch workloads (e.g. file compression, video transcoding, software testing, and data analytics tasks) running on machine 2. To simulate a long-tail distribution, each workload comprised 40 parallel tasks: 39 short and one significantly longer, each as a python script or C/C++ program. The agent consistently identified this pattern, implemented a Longest Job First (LJF) scheduling policy, and achieved an average 20\% reduction in end-to-end processing time. The cost for this analysis averaged \$0.15 per workload, based on Claude Opus 4 pricing from August 2025. We note that the powerful Claude Opus agent successfully classified all 8 workloads, whereas the smaller Claude Sonnet model could not. In addition to performance gains, our framework's optimizations reduced generation costs per iteration: time fell from 33 to 2.5 minutes (a 13x reduction), and the monetary cost dropped from \$6 to \$0.5.
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.9\columnwidth]{sections/scheduler_performance_comparison.pdf}
-\caption{AI-generated scheduler performance on batch workloads.}
-\label{fig:batch-performance}
-\end{figure}
-\section{Related Work}
-\label{sec:related}
 
 Machine learning has a history of optimizing systems, including learned indexes~\cite{kraska2018learned}, database tuning~\cite{marcus2019neo,vanaken2017ottertune}, and RL-based job schedulers~\cite{mao2019decima,qiu2020firm,zhang2024mrsch} supported by platforms like Park~\cite{mao2019park}. However, these methods require extensive training, lack the semantic understanding to transfer knowledge across diverse workloads, or need human specify high level optimization goals. While recent work has applied LLMs to system diagnostics~\cite{wang2024llmsys} and  code generation~\cite{wei2024mapper,10.1145/3672197.3673434}, our work is the first to use an autonomous agent to design, configure and generate kernel schedulers, and apply them for end-to-end system optimization without human involvement. By leveraging LLM Agent reasoning, tool usage with sched\_ext and eBPF, our framework uniquely bridges the semantic gap between application needs and system policy.
 \section{Future Work}
