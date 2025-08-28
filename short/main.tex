@@ -1,0 +1,86 @@
+\documentclass[preprint]{article}
+
+%% Define the \sys command for the system name
+\newcommand{\sys}{SchedCP\xspace}
+%% Define the \agent command for the sched-agent name
+\newcommand{\agent}{sched-agent\xspace}
+
+
+\usepackage{neurips_2025}
+% \usepackage[final]{neurips_2025}
+
+
+\usepackage{listings}     % For ASCII-art / code blocks
+\usepackage{booktabs}     % Nicer tables
+\usepackage{array}        % Column types
+\usepackage{tabularx}     % Automatic column width
+\usepackage{enumitem}     % Compact lists
+
+
+
+\usepackage{comment}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage[english]{babel} 
+\usepackage{url}
+\usepackage{graphicx}
+
+
+\usepackage{hyperref}       % hyperlinks
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+
+
+
+\title{Towards Agentic OS: An LLM Agent Framework for Linux Schedulers}
+
+
+
+\author{%
+  Yusheng Zheng$^{1}$ \quad
+  Yanpeng Hu$^{2}$ \quad
+  Andi Quinn$^{1}$ \\
+  $^{1}$UC Santa Cruz, CA, USA \quad
+  $^{2}$ShanghaiTech University, Shanghai, China \\
+  \texttt{\{yzhen165, aquinn1\}@ucsc.edu, huyp@shanghaitech.edu.cn}
+}
+\sloppy
+\begin{document}
+
+
+\maketitle
+
+
+\begin{abstract}
+Operating system schedulers suffer from a fundamental semantic gap, where kernel policies fail to understand application-specific needs, leading to suboptimal performance. We introduce \sys, the first framework that enables fully autonomous Large Language Model (LLM) agents to safely and efficiently optimize Linux schedulers without human involvement. Our core insight is that the challenge is not merely to \emph{apply} a better LLM, but to architect a decoupled control plane that separates the AI's role of semantic reasoning ("what to optimize") from the system's role of execution ("how to observe and act"). Implemented as Model Context Protocol(MCP) server, \sys provides a stable interface with three key services: a Workload Analysis Engine, an evolving Scheduler Policy Repository, and an Execution Verifier that validates all AI-generated code and configure before deployment with static and dynamic analysis. 
+
+We demonstrate this architecture's power with \agent, a multi-agent system that autonomously analyzes workloads, synthesizes custom eBPF scheduling policies, and deploys them via the sched\_ext infrastructure. Our evaluation shows that SchedCP achieves up to an 1.79x performance improvement, and a 13x cost reduction compared to naive agentic approaches, all while maintaining high success rate. By bridging the semantic gap, SchedCP democratizes expert-level system optimization and represents a step towards creating truly self-optimizing, application-aware operating systems. The code will be open-sourced.
+\end{abstract}
+
+
+
+\maketitle
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/motivation}
+\input{sections/design\_impl}
+\input{sections/evaluation}
+\input{sections/related}
+\input{sections/future}
+\input{sections/conclusion}
+
+
+\bibliographystyle{plain}
+\bibliography{sample-base}
+
+
+
+
+
+
+\end{document}

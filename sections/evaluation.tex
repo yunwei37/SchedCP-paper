@@ -9,19 +9,19 @@ We investigate key research questions to validate the effectiveness and efficien
 \item \textbf{RQ1}: Can \sys effectively configure existing schedulers?
 \item \textbf{RQ2}: Can \sys generate new schedulers for specific workloads?
 \item \textbf{RQ3}: What is the cost and efficiency of \sys's scheduler generation?
-\item \textbf{RQ4}: How much can \agent continue to improve performance after initial generation?
+\item \textbf{RQ4}: How much can \agent continue to improve performance after initial attempt?
 % \item \textbf{RQ5}: How effectively can \sys understand workloads?
 \end{itemize}
 
 \subsection{Experimental Setup}
 
-We evaluate \sys on two machines, machine 1 is an 86-core, 172 threads Intel Xeon 6787P with 758GB RAM, NVMe SSDs, 10Gbps network, with 2x 256 GB CXL (Compute Express Link) memory device, 3 numa node, running Linux 6.14 with sched\_ext. Machine 2 is an 8-core, 8 threads Intel Core Ultra 7 258V with 30GB RAM, NVMe SSDs, 1 NUMA node, running Linux 6.13 with sched\_ext. We test Claude Code (Opus 4) as AI agents to validate framework generality. For each case, we test 3 times and get the average results.
+We evaluate \sys on two machines, machine 1 is an 86-core, 172 threads Intel Xeon 6787P with 758GB RAM, NVMe SSDs, 10Gbps network, with 2x 256 GB CXL (Compute Express Link) memory device, 3 numa node, running Linux 6.14 with sched\_ext. Machine 2 is an 8-core, 8 threads Intel Core Ultra 7 258V with 30GB RAM, NVMe SSDs, 1 NUMA node, running Linux 6.13 with sched\_ext. We test Claude Code (Opus 4) as AI agents to validate framework generality. For each case, we test 3 times and get the average results. In all the experiments, the Agent successfully creates working custom scheduler configurations or eBPF programs.
 
 \subsection{Performance Impact of AI-Driven Optimization}
 
 % For schbench, the LLM achieves 50\% lower p99 latency and 30\% higher throughput by selecting scx\_layered. 
 
-The Linux kernel build benchmark compile the kernel 6.14 with tinyconfig and ``make -j 172'' on machine 1. Figure~\ref{fig:performance-comparison} shows performance improvements across three stages: baseline EEVDF, LLM-configured schedulers, and Iteration-improved configurations. We also compare with basic RL algorithms that have been proposed for scheduler optimization~\cite{corbet2025ml}. The workload shows 1.63x speedup from 13.57s to 8.31s using scx\_rusty as the first attemp. After 3 iteration of observe-optimization process, the \agent selects the scx\_layered scheduler and adds 16\% additional gain beyond LLM configuration, with total improvements of 1.79x over baseline EEVDF. In contrast, basic RL approaches show no improvement in our tests, likely because they require hardware-specific retraining, which is costly and time-consuming. 
+We evaluate the \sys and \agent's ability of effectively configure existing scheduler and learn after first attempt. The Linux kernel build benchmark compile the kernel 6.14 with tinyconfig and ``make -j 172'' on machine 1. Figure~\ref{fig:performance-comparison} shows performance improvements across three stages: baseline EEVDF, LLM-configured schedulers, and Iteration-improved configurations. We also compare with basic RL algorithms that have been proposed for scheduler optimization~\cite{corbet2025ml}, which only tunes scheduler parameter. The workload shows 1.63x speedup from 13.57s to 8.31s using scx\_rusty as the first attemp. After 3 iteration of observe-optimization process, the \agent selects the scx\_layered scheduler and adds 16\% additional gain beyond LLM configuration, with total improvements of 1.79x over baseline EEVDF. In contrast, basic RL approaches show no improvement in our tests, likely because they require hardware-specific retraining, which is costly and time-consuming.
 
 \begin{figure}[h]
 \centering
@@ -30,7 +30,7 @@ The Linux kernel build benchmark compile the kernel 6.14 with tinyconfig and ``m
 \label{fig:performance-comparison}
 \end{figure}
 
-We further evaluate \sys on machine 2 using schbench~\cite{schbench2016}, a scheduler benchmark measuring wakeup latency and throughput. Figure~\ref{fig:schbench-comparison} compares three configurations: default EEVDF, initial selection (scx\_bpfland), and iterative optimization (scx\_rusty after 3 iterations). While scx\_bpfland initially underperformed with 13\% worse P99 latency (46.1ms vs 40.3ms) and 19\% lower throughput (741 vs 910 req/s), iterative refinement identified scx\_rusty as superior. After three iterations, scx\_rusty achieved 2.11× better P99 latency (19.1ms) and 1.60× higher throughput (1452 req/s) versus EEVDF, demonstrating our agent's effective learning from performance feedback.
+We further evaluate \sys on machine 2 using schbench~\cite{schbench2016}, a scheduler benchmark measuring wakeup latency and throughput. Figure~\ref{fig:schbench-comparison} compares three configurations: default EEVDF, initial selection (scx\_bpfland), and iterative optimization (scx\_rusty after 3 iterations). While AI configured scheduler initially underperformed with 13\% worse P99 latency (46.1ms vs 40.3ms) and 19\% lower throughput (741 vs 910 req/s), AI iterative refinement identified scx\_rusty as superior. After three iterations, scx\_rusty achieved 2.11× better P99 latency (19.1ms) and 1.60× higher throughput (1452 req/s) versus EEVDF, demonstrating our agent's effective learning from performance feedback.
 
 \begin{figure}[h]
 \centering
@@ -41,9 +41,7 @@ We further evaluate \sys on machine 2 using schbench~\cite{schbench2016}, a sche
 
 \subsection{Scheduler Synthesis for Batch Workloads}
 
-Figure~\ref{fig:batch-performance} demonstrates AI-generated scheduler performance on batch processing workloads. We selected 8 diverse workloads from real-world scenarios including file compression, video transcoding, software testing, and data analytics tasks, each configured with 40 parallel tasks (39 short tasks completing in seconds, 1 long task taking significantly longer) to create severe load imbalance typical of long-tail distributions. We execute tasks in parallel and calculate performance improvements for end to end latency in machine 2. We observed the agent can consistently identifies the workload pattens, successfully identify the workload process, implement LJF scheduling and improve the performance for average 20\% reduction in end to end processing time.
-
-Classification cost averages \$0.15 per analysis based on Claude Opus pricing on Aug 2025. We also observed the Agent based on Claude Opus (A bigger and more powerful model for claude code) can successfuly classify all the 8 workloads, while a smaller model Claude sonnet cannot. Beyond performance improvements, our framework achieves cost reductions through systematic optimizations. average Generation time drops from 33 minutes to 2.5 minutes (13x reduction) for one iteration. Monetary cost also falls from \$6.00 to \$0.45.
+Figure~\ref{fig:batch-performance} evaluates the \sys  and \agent  ability of generating new and better scheduler from scratch on 8 diverse batch workloads (e.g. file compression, video transcoding, software testing, and data analytics tasks) running on machine 2. To simulate a long-tail distribution, each workload comprised 40 parallel tasks: 39 short and one significantly longer, each as a python script or C/C++ program. The agent consistently identified this pattern, implemented a Longest Job First (LJF) scheduling policy, and achieved an average 20\% reduction in end-to-end processing time. The cost for this analysis averaged \$0.15 per workload, based on Claude Opus 4 pricing from August 2025. We note that the powerful Claude Opus agent successfully classified all 8 workloads, whereas the smaller Claude Sonnet model could not. In addition to performance gains, our framework's optimizations reduced generation costs per iteration: time fell from 33 to 2.5 minutes (a 13x reduction), and the monetary cost dropped from \$6 to \$0.5.
 
 \begin{figure}[h]
 \centering
