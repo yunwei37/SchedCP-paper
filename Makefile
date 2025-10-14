@@ -2,6 +2,7 @@
 
 # Main document name (without .tex extension)
 MAIN = short
+PROPOSAL = proposal
 
 # LaTeX compiler
 LATEX = pdflatex
@@ -39,4 +40,17 @@ force: clean all
 extract-text: $(MAIN).pdf
 	pdftotext $(MAIN).pdf $(MAIN).txt
 
-.PHONY: all clean cleanall force extract-text
+# Proposal compilation
+proposal: $(PROPOSAL).pdf
+
+$(PROPOSAL).pdf: $(PROPOSAL).tex $(MAIN).tex $(PROPOSAL).bbl
+	$(LATEX) $(LATEXFLAGS) $(PROPOSAL).tex
+	$(LATEX) $(LATEXFLAGS) $(PROPOSAL).tex
+
+$(PROPOSAL).bbl: $(PROPOSAL).aux sample-base.bib
+	$(BIBTEX) $(PROPOSAL)
+
+$(PROPOSAL).aux: $(PROPOSAL).tex
+	$(LATEX) $(LATEXFLAGS) $(PROPOSAL).tex
+
+.PHONY: all clean cleanall force extract-text proposal
