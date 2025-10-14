@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 
-\usepackage[margin=1in]{geometry}
+\usepackage[top=-0.1in,bottom=0.8in,left=1in,right=1in]{geometry}
 \usepackage{xspace}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -13,53 +13,51 @@
 %% Define the \agent command for the sched-agent name
 \newcommand{\agent}{sched-agent\xspace}
 
-\title{Project Proposal: Comprehensive Benchmark for Agentic OS Optimization}
-\author{Team Members}
+\title{Project Proposal: Benchmark for Agentic OS Optimization}
+\author{Yusheng Zheng}
 \date{}
 
 \begin{document}
 
 \maketitle
 
-\section*{Project Proposal}
-
-\textit{Note: Attached is our accepted workshop paper ``Towards Agentic OS: An LLM Agent Framework for Linux Schedulers'' presented at the MLforSystem Workshop at NeurIPS 2025, which provides the foundation for this extended project.}
-
 \subsection*{1. Motivation}
 
-\subsection*{1. Motivation}
-
-Generic OS kernel policies often fail to meet specific application needs, yet the emerging field of agentic OS optimization lacks a systematic way to measure progress. While our workshop paper demonstrated the potential of LLM agents for scheduler tuning, a standardized benchmark is needed to drive reproducible research in this area. We propose to create such a benchmark to systematically evaluate and compare LLM agents, frameworks, and optimization strategies.
+Generic OS kernel policies often fail to meet specific application needs, and the emerging field of agentic OS optimization lacks a standard for measuring progress. While our attached workshop paper demonstrated that LLM agents can tune schedulers, a standardized benchmark is crucial for driving reproducible research. We propose to create this benchmark to systematically evaluate and compare LLM agents, frameworks, and optimization strategies.
 
 \subsection*{2. Problem Definition and ML Formulation}
 
-We define the problem as creating a standardized benchmark to evaluate an LLM agent's ability to optimize OS performance against varied workloads and Service Level Objectives (SLOs). This is a goal-oriented agentic task, not merely code generation. We measure success by an agent's ability to improve key system metrics (e.g., latency, throughput) within a given resource budget, tackling a two-phase challenge: 1) inferring optimization goals from system behavior and 2) using a diverse toolset (profiling, configuration, code synthesis) to achieve them.
+We define the problem as creating a standardized benchmark to evaluate an LLM agent's ability to optimize OS performance against varied workloads and Service Level Objectives (SLOs). This is a goal-oriented agentic task, not merely code generation. Success is measured by an agent's ability to improve key system metrics (e.g., latency, throughput) within a given resource budget, tackling a two-phase challenge: 1) inferring optimization goals from system behavior and 2) using a diverse toolset (profiling, configuration, code synthesis) to achieve them.
 
 \subsection*{3. Existing Approaches}
 
-Current OS optimization relies on static policies (e.g., Linux's EEVDF), adaptive algorithms (e.g., RL-based schedulers), and manual tuning by human experts. While human expertise represents a key performance target, it is difficult to use as a consistent baseline. Therefore, our benchmark will primarily use traditional adaptive algorithms, ML models, and workload-specific schedulers as baselines to quantify the value and effectiveness of LLM agents.
+Current OS optimization relies on static policies (e.g., Linux's EEVDF), adaptive algorithms (e.g., RL-based schedulers), and manual tuning by human experts. While human expertise is a key performance target, it is difficult to use as a consistent baseline. Therefore, our benchmark will primarily use traditional adaptive algorithms, ML models, and workload-specific schedulers as baselines to quantify the value of LLM agents.
 
 \subsection*{4. Existing Datasets and Workloads}
 
-Our benchmark will be built on a curated suite of diverse and representative system workloads. We will start with workloads from our prior work, including kernel compilation, `schbench`, and various batch jobs (e.g., video transcoding, data analytics). These will be packaged into a standardized suite with clear execution instructions and SLOs, providing a robust foundation for evaluating agent performance across different real-world scenarios.
+Our benchmark will be built on a curated suite of diverse and representative system workloads. We will start with workloads from our prior work, including kernel compilation, `schbench`, and various batch jobs (e.g., video transcoding, data analytics). These will be packaged into a standardized suite with clear execution instructions and SLOs, providing a robust foundation for evaluating agent performance.
 
 \subsection*{5. Novelty}
 
-The primary novelty is the formulation of a new problem: the systematic benchmarking of agentic OS optimization. While our workshop paper introduced an agent framework, this project creates the first standardized benchmark to evaluate such agents. This will enable reproducible research, test agent generalization across OS subsystems (scheduling, caching, DVFS), and establish a common ground for comparing LLM models and agentic frameworks.
+The primary novelty is the formulation of a new problem: the systematic benchmarking of agentic OS optimization. While our workshop paper introduced an agent framework, this project creates the first standardized benchmark to evaluate such agents. This will enable reproducible research, test agent generalization across OS subsystems (e.g., scheduling, caching, DVFS), and establish a common ground for comparing LLM models and agentic frameworks.
 
 \subsection*{6. Implementation and Verification Plan}
 
-We will implement an extensible benchmark framework with three components: 1) a workload runner for executing applications and measuring performance, 2) a secure agent execution environment with a rich toolset for observation and optimization, and 3) an evaluation harness to automate agent scoring against SLOs. To verify our idea, we will use the benchmark to evaluate several baseline agents, demonstrating its ability to differentiate their capabilities and guide future research.
+We will implement an extensible benchmark framework with three components: 1) a workload runner for executing applications and measuring performance, 2) a secure agent execution environment with a rich toolset for observation and optimization, and 3) an evaluation harness to automate agent scoring against SLOs. We will use the benchmark to evaluate several agents and models(e.g. qwen, GPT, claude, gemini), demonstrating its ability to differentiate their capabilities and guide future research.
 
-\vfill
-\noindent\textbf{References:} See bibliography below.
+% \vfill
+% \noindent\textbf{References:} See bibliography below.
 
-\bibliographystyle{plain}
-\bibliography{sample-base}
+% \bibliographystyle{plain}
+% \bibliography{sample-base}
 
-\clearpage
-\section*{Attachment: Workshop Paper}
-\noindent The full workshop paper ``Towards Agentic OS: An LLM Agent Framework for Linux Schedulers'' from the MLforSystem Workshop at NeurIPS 2025 is attached below.
+% \clearpage
+% \section*{Attachment: Workshop Paper}
+% \noindent The full workshop paper ``Towards Agentic OS: An LLM Agent Framework for Linux Schedulers'' from the MLforSystem Workshop at NeurIPS 2025 is attached below.
+% \vspace{5em}
+% \section*{Attachment: Workshop Paper}
+
+% \textit{Note: Attached is our accepted workshop paper ``Towards Agentic OS: An LLM Agent Framework for Linux Schedulers'' presented at the MLforSystem Workshop at NeurIPS 2025, which provides the foundation for this extended project.}
 
 \includepdf[pages=-,pagecommand={}]{short.pdf}
 

@@ -43,14 +43,8 @@ extract-text: $(MAIN).pdf
 # Proposal compilation
 proposal: $(PROPOSAL).pdf
 
-$(PROPOSAL).pdf: $(PROPOSAL).tex $(MAIN).tex $(PROPOSAL).bbl
+$(PROPOSAL).pdf: $(PROPOSAL).tex $(MAIN).tex
 	$(LATEX) $(LATEXFLAGS) $(PROPOSAL).tex
-	$(LATEX) $(LATEXFLAGS) $(PROPOSAL).tex
-
-$(PROPOSAL).bbl: $(PROPOSAL).aux sample-base.bib
-	$(BIBTEX) $(PROPOSAL)
-
-$(PROPOSAL).aux: $(PROPOSAL).tex
 	$(LATEX) $(LATEXFLAGS) $(PROPOSAL).tex
 
 .PHONY: all clean cleanall force extract-text proposal
