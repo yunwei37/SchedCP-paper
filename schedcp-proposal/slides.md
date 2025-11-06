@@ -1,10 +1,10 @@
 ---
 theme: seriph
 background: https://cover.sli.dev
-title: Agentic OS Optimization
+title: 'SchedCP: Autonomous OS Optimization with LLM Agents'
 info: |
-  ## Agentic OS Optimization: Workshop Paper & Benchmark Proposal
-  LLM Agents for Linux Scheduling and Benchmark Design
+  ## SchedCP: Autonomous OS Optimization with LLM Agents
+  A framework for safe, efficient, and autonomous performance tuning.
 class: text-center
 drawings:
   persist: false
@@ -12,9 +12,9 @@ transition: slide-left
 mdc: true
 ---
 
-# Agentic OS Optimization
+# SchedCP: Autonomous OS Optimization
 
-**Workshop Paper & Benchmark Proposal**
+**A Framework for LLM Agents to Safely Tune the Linux Scheduler**
 
 <div class="abs-br m-6 text-sm opacity-50">
   Class Project Presentation
@@ -22,131 +22,148 @@ mdc: true
 
 ---
 
-# Slide 1: Problem & Key Insight
+# Slide 1: The Semantic Gap & Our Insight
 
-## Towards Agentic OS: LLM Agents for Linux Scheduling
+## Problem: Schedulers Lack Application-Specific Context
 
-### The Gap
-- Kernel schedulers use generic policies that don't understand per-application intent
-- Latency vs throughput vs fairness trade-offs are hardcoded
-- Results in avoidable performance loss
+<div class="grid grid-cols-2 gap-8">
+<div>
 
-### Why Naïve "LLM writes the kernel" Fails
-- Direct code-gen is slow, expensive, and brittle
-- Often degrades performance instead of improving it
+### The Semantic Gap
+- Kernel schedulers use generic, one-size-fits-all policies.
+- They fail to understand application-specific needs (e.g., latency vs. throughput).
+- This leads to avoidable performance loss and inefficient resource use.
 
-### Key Insight: Decouple Reasoning from Execution
-**Semantic reasoning** ("What should the system optimize?") + **System execution** ("How to observe and act?")
+</div>
+<div>
 
-### Our System
-- **SchedCP**: Control plane with stable, safe interfaces (profiling, tracing, validation)
-- **sched-agent**: Multi-agent system that infers goals and synthesizes scheduling policies (eBPF via sched_ext)
+### Why Naïve Solutions Fail
+- Directly asking an LLM to "write kernel code" is brittle, unsafe, and slow.
+- It often degrades performance and misses the true optimization goal.
 
-**Takeaway**: Treat agentic OS optimization as goal-oriented, closed-loop control—not code generation
+</div>
+</div>
 
 ---
 
-# Slide 2: Architecture & Multi-Agent System
+### Our Insight: Decouple Reasoning from Execution
 
-## SchedCP Control Plane + sched-agent
+A structured control plane is needed to separate the two key stages of optimization:
 
-<div class="grid grid-cols-2 gap-6 text-sm">
+1.  **Goal Inference (The "What")**: The AI's role. Autonomously analyze workload behavior to determine the *semantic goal* (e.g., "minimize p99 latency").
+2.  **Policy Synthesis (The "How")**: The System's role. Translate the goal into a safe, verifiable scheduling policy using robust tools and interfaces.
+
+**Takeaway**: We enable agents to be goal-oriented thinkers, not just unsafe code generators.
+
+---
+
+# Slide 2: Architecture — The SchedCP Control Plane
+
+## A Framework for Safe, Autonomous Optimization
+
+SchedCP is an MCP server that provides a stable, verifiable interface for LLM agents.
+
+<div class="grid grid-cols-2 gap-6">
 
 <div>
 
-### SchedCP (MCP Server)
+### SchedCP: The Control Plane
+Provides three key services for agents:
 
-**Workload Analysis Engine**
-- Collects traces/counters
-- Surfaces bottleneck hypotheses and candidate SLOs
+**1. Workload Analysis Engine**
+- Ingests traces, profiles, and metrics.
+- Surfaces performance bottlenecks and candidate SLOs.
 
-**Scheduler Policy Repository**
-- Templates & patterns for eBPF policies
-- Custom queuing, preemption, priority rules
+**2. Scheduler Policy Repository**
+- An evolving library of eBPF scheduler patterns and templates.
+- Enables safe, compositional policy creation.
 
-**Execution Verifier**
-- Static/dynamic checks
-- Validates configs and code before deployment
+**3. Execution Verifier**
+- Statically and dynamically analyzes all generated code and configurations *before* deployment.
+- Guarantees safety and stability.
 
 </div>
-
 <div>
 
-### sched-agent (Multi-Agent System)
+### `sched-agent`: The Autonomous Agent
+A multi-agent system that uses SchedCP to optimize:
 
 **Observation Agent**
-- Collects signals (perf, ftrace, BPF)
-- Identifies pathologies
+- Monitors system signals to identify optimization opportunities.
 
 **Planning Agent**
-- Chooses optimization goals & tactics
-- Within SLO/budget constraints
+- Infers goals and selects optimization strategies.
 
 **Execution Agent**
-- Instantiates/adapts eBPF policies
-- Via sched_ext
+- Synthesizes and deploys eBPF policies via `sched_ext`.
 
 **Learning Agent**
-- Evaluates outcomes
-- Logs lessons, refines policies
+- Evaluates outcomes and refines policies over time.
+
+</div>
+</div>
+
+<div class="mt-4 text-center">
+
+**Result**: A closed-loop system where agents reason about *what* to do, and SchedCP provides the safe tools for *how* to do it.
 
 </div>
 
+<div class="mt-6">
+
+<img src="/arch-schedcp.png" class="mx-auto rounded shadow-lg" style="max-height: 350px;" alt="SchedCP Architecture Diagram" />
+
+<div class="text-xs mt-2 opacity-70 text-center">
+Architecture: SchedCP Control Plane with multi-agent system
 </div>
 
-<div class="mt-6 text-center">
-
-```
-┌─────────────────────┐
-│ Agentic Reasoning   │
-│ (Goal Inference)    │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│     SchedCP         │
-│ Analysis/Repo/      │
-│ Verifier            │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│ Kernel (sched_ext)  │
-└─────────────────────┘
-      ▲
-      │ Runtime Metrics
-      └─────────────────
-```
-
 </div>
-
-**Why it works**: Agents reason over semantics using safe, composable tools; kernel changes are guarded by verification
 
 ---
 
-# Slide 3: Workshop Results & Limitations
+# Slide 3: Results & Key Achievements
 
-## What the Workshop Version Demonstrated
+## Autonomous Agents Achieve Expert-Level Performance
 
-### Representative Results
-- **1.79×** performance improvement on kernel compile
-- **~2.11× P99 latency improvement** on schbench
-- **~1.60× throughput gain** on schbench
-- **~20% latency reduction** on batch workloads
-- **~13× cost reduction** vs. naïve agentic approaches
+Our evaluation shows that `sched-agent`, powered by SchedCP, can autonomously and significantly improve system performance.
 
-### Key Insights
-- Architecture (MCP + policy repository + verifier) matters more than model size alone
-- Independent of a single LLM
+### Representative Performance Gains
+- **1.79×** faster kernel compilation (throughput).
+- **2.11×** lower P99 latency on `schbench`.
+- **1.60×** higher throughput on `schbench`.
+- **13×** cost reduction vs. naïve "code-gen" agentic approaches.
 
-### Limitations & Realities
-- Scope: mainly CPU scheduling via sched_ext and eBPF
-- Other subsystems (I/O, caching, DVFS) not evaluated
-- Results depend on workload mix and verification guardrails
-- Generalization unproven
+### What This Proves
+1.  **The Architecture Works**: Decoupling reasoning from execution is the right model for agentic OS optimization.
+2.  **Full Autonomy is Viable**: The system operates safely and effectively with no human in the loop.
+3.  **It's Efficient**: The control plane drastically reduces the cost and complexity of using LLMs for this task.
 
-### Critical Implication
-**The field needs a standardized, reproducible benchmark** to measure progress across agents, models, and OS subsystems—not just ad-hoc demos
+### Current Scope & Future Work
+- **Focus**: CPU scheduling via `sched_ext` and eBPF.
+- **Next Steps**: Extend the framework to other OS subsystems (I/O, memory, power) and develop a standardized benchmark to drive reproducible research in this new field.
+
+<div class="mt-6">
+
+<div class="grid grid-cols-3 gap-4">
+
+<div>
+<img src="/linux-build-results.png" class="rounded shadow-lg" alt="Linux Build Benchmark Results" />
+<div class="text-xs mt-1 opacity-70 text-center">Linux Kernel Build Performance</div>
+</div>
+
+<div>
+<img src="/schbench-results.png" class="rounded shadow-lg" alt="Schbench Performance Comparison" />
+<div class="text-xs mt-1 opacity-70 text-center">Schbench Latency & Throughput</div>
+</div>
+
+<div>
+<img src="/scheduler-comparison.png" class="rounded shadow-lg" alt="Scheduler Performance Comparison" />
+<div class="text-xs mt-1 opacity-70 text-center">Overall Scheduler Comparison</div>
+</div>
+
+</div>
+
+</div>
 
 ---
 
