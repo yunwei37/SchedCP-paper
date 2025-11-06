@@ -16,7 +16,7 @@ mdc: true
 
 **A Framework for LLM Agents to Safely Tune the Linux Scheduler**
 
-Based on "Towards Agentic OS: An LLM Agent Framework for Linux Schedulers" to appear in MLforSystem 2025 workshop in NIPS as spotlight.
+Based on "Towards Agentic OS: An LLM Agent Framework for Linux Schedulers" to appear in MLforSystem 2025 workshop in NIPS as spotlight. https://arxiv.org/html/2509.01245v4
 
 <div class="abs-br m-6 text-sm opacity-50">
   Class Project Presentation
@@ -24,20 +24,20 @@ Based on "Towards Agentic OS: An LLM Agent Framework for Linux Schedulers" to ap
 
 ---
 
-# Can LLM Agents fully automatically optimize OS?
+# Can LLM Agents fully automatically optimize OS? Start from schedulers
 
 <div class="grid grid-cols-2 gap-8">
 <div>
 
-## Problem
+### Problem
 
 - **Semantic Gap**: Schedulers fail to understand application needs (latency vs throughputs, SLOs)
 - **Knowledge Gap**: Developers lack workload insight; users lack kernel expertise. Kernel programming is hard, limiting innovation.
 
-## Current solutions
+### Current solutions:
 
-- **RL-based Schedulers**: Require per-workload training and human specific SLOs
-- **Naïve LLM Agents**: Unsafe (can crash system), inefficient ($6, 33 min/run for a single generation), may reduce performance
+- **RL-based**: Require per-workload training and human specific SLOs
+- **Naïve LLM or Agents**: Fix pipeline that need human guide, or Unsafe (can crash system), inefficient ($6, 33 min/run for a single generation), may reduce performance.
 
 </div>
 <div>
@@ -51,14 +51,12 @@ Model the process as 2 stages:
 - **Goal-Inference**: uses tools to analyze workload intent and structure, and system environments.
 - **Policy-Synthesis**: LLM config or generate safe, efficient eBPF schedulers from its analysis.
 
-LLM Agent should be in control plane, not the data plane.
-
 </div>
 </div>
 
 ---
 
-# System Architecture: SchedCP & Multi-Agent Framework
+# System Architecture: SchedCP & Multi-Agent
 
 <div class="grid grid-cols-2 gap-8 mt-6">
 
@@ -83,7 +81,7 @@ LLM Agent should be in control plane, not the data plane.
 - **Execution** → Policy deployment
 - **Learning** → Refinement
 
-Key idea: 
+Key idea: LLM Agent in control plane, not the data plane, manage OS like a human SRE without overhead.
 
 </div>
 
@@ -97,14 +95,11 @@ Key idea:
 
 <div>
 
-### Performance Gains
+### On Claude code + Claude opus 4
 
-- **1.79× faster** kernel compilation
-- **2.11× lower P99 latency** on schbench
-- **1.60× higher throughput** on schbench
-- **13× cost reduction** vs. naïve agents
+- 1.79× faster,  2.11× lower P99 latency, 1.60× higher throughput, 13× cost reduction vs. naïve agents
 
-### Limitaions & Next Steps
+### Limitations & Next Steps
 
 - Develop standardized benchmark framework for Agentic tasks
 - Extend to I/O, memory, power subsystems
@@ -138,134 +133,89 @@ Key idea:
 
 ---
 
-# Benchmark Framework Design & Evaluation Methodology
+# Benchmark Framework Design
 
-## A Reproducible Benchmark for Agentic OS Optimization
+Goal: Evaluate LLM agent's ability to optimize OS behavior for diverse workloads under explicit **SLOs** and **budgets** (time, tokens, CPU/energy)
 
-### Goal
-Evaluate LLM agent's ability to optimize OS behavior for diverse workloads under explicit **SLOs** and **budgets** (time, tokens, CPU/energy)
+Build a RL-like environment for the agents, and allow agents to tune the OS configs and using code generation to alert OS behavior.
 
-### Task Design (2-Phase Challenge)
+<div class="grid grid-cols-2 gap-4 text-sm">
+
+<div>
+
+## RQs
+
+- Can agents infer optimization goals from telemetry, without being told the SLO?
+- Can they hold SLOs under drift with controller‑grade stability (no thrash)?
+- What improvement do we buy per token/second—what are the scaling laws?
+- How does agents achieve optimizations? Do we need to design better system interface?
+
+
+</div>
+
+<div>
+
+## Task Design (2-Phase Challenge)
+
 1. **Goal Inference**: From traces/metrics/logs, infer bottlenecks & optimization targets
 2. **Policy/Tool Synthesis**: Select/configure tools OR synthesize code (eBPF schedulers) to meet SLOs
 
-### Evaluation Axes
-
-<div class="grid grid-cols-2 gap-4 text-sm">
-
-<div>
-
-**Primary Metrics**
-- Latency (P50/P99)
-- Throughput
-- Fairness
-- Energy
-
-**Constraint Satisfaction**
-- SLO adherence (hard/soft)
-- Safety (no crashes, verifier passes)
-- Budget usage (wall-clock, tokens, CPU)
+Test with different models and agents (Claude code, codex)
 
 </div>
 
-<div>
-
-**Generalization**
-- Performance on held-out workloads
-- Unseen SLOs
-
-**Scoring Formula**
-```
-I_{w,m} = Baseline / Agent  (latency; lower better)
-I_{w,m} = Agent / Baseline  (throughput; higher better)
-
-Score = Σ_w [(Σ_m α_m · I_{w,m}) · 1[hard SLOs met]]
-        - λ · BudgetOveruse
-```
 
 </div>
 
-</div>
-
-### Tracks (Avoid Apples-to-Oranges)
-- **T1 Config-only**: Change kernel/user-space knobs; no code-gen
-- **T2 Code-gen allowed**: eBPF policy synthesis via sched_ext with verification
-- **T3 Multi-subsystem**: Scheduling + (I/O, caching, or DVFS), gated behind safety
 
 ---
 
-# Implementation Plan & Benchmark Specification
+# Benchmark Implementation
 
-## Concrete Scope & Deliverables
+**Approach**: OSS software (Helm/Docker) with pre-defined SLOs from documentation
 
-### Initial Workload Suite (~20)
-
-<div class="grid grid-cols-2 gap-4 text-sm">
+<div class="grid grid-cols-2 gap-8 text-sm mt-4">
 
 <div>
 
-**CPU-bound batch**
-- kernel make, LLVM build
-- xz/gzip, ffmpeg
+### Workload Suite (20-30)
 
-**Latency-critical**
-- schbench, hackbench
-- context-switch patterns
+**CPU-bound**: kernel build, LLVM, xz/gzip, ffmpeg
+**Latency-critical**: schbench, hackbench, context-switch
+**Server**: nginx+wrk, Redis+memtier
+**Analytics**: sort/join, SQLite queries
+**Stress**: memory/CPU test suit
+**GPU**: vllm, llama.cpp, pytorch
 
-**Server-like**
-- nginx+wrk
-- Redis+memtier (CPU contention)
+Each: **clear SLOs + repeatable harness**
+
+### Baselines
+- Linux defaults (CFS/EEVDF, tuned)
+- Published RL/ML schedulers
+- Naïve LLM agents (no control plane)
 
 </div>
 
 <div>
 
-**Analytics**
-- sort/join pipelines
-- SQLite queries
-- map-reduce toy
+### Infrastructure
 
-**Stress/perturbation**
-- memory pressure
-- CPU pinning noise
-- power-save governors
+**Runner**: Containers/VMs, pinned kernel
+**Agent Sandbox**: MCP server + verifier
+**Evaluator**: Multi-run stats + SLO checks
+**Reproducibility**: Fixed seeds, hardware profiles
 
-</div>
 
-</div>
+### Task Done
 
-Each workload: **clear SLOs** + **repeatable harness**
+Built framework with 2-5 minimal example, working on more:
 
-### Baselines (Principled & Reproducible)
-- Human-tuned Linux defaults (CFS/EEVDF with documented knobs)
-- Adaptive/ML baselines (published RL/config learners)
-- Naïve agent baselines (prompt-only code-gen without control-plane)
-
-### Benchmark Harness (Extensible & Safe)
-- **Runner**: Containers/VMs, time-series collection, pinned kernel version
-- **Agent Sandbox**: MCP tool server + Verifier gate
-- **Evaluator**: Multi-run statistics, SLO checks, signed result bundles
-- **Reproducibility**: Fixed seeds, cold/warm start, hardware profiles
-
-### Implementation Plan
-
-<div class="text-sm">
-
-**M1 (Framework)**: Runner + evaluator + MCP server; 6 workloads; T1 track
-
-**M2 (Safety & Code-gen)**: Verifier + sched_ext; eBPF repo; 12 workloads; T2 track
-
-**M3 (Breadth & Leaderboard)**: 20+ workloads; CI validation; public website; T3 pilot
+https://github.com/eunomia-bpf/schedcp
 
 </div>
 
-### Risks & Mitigations
-- **Kernel safety** → verification gates, kill-switch, non-root BPF
-- **Evaluation flakiness** → multi-run medians, variance filters, power capping
-- **Model cost** → strict budgets, caching, cost-normalized scores
-- **Gaming** → hidden workloads/SLOs, log attestation, policy diff checks
+</div>
 
-**Bottom line**: Without a public, hardened benchmark, "agentic OS" won't move beyond one-off demos
 
 ---
 layout: center
