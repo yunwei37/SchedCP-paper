@@ -16,37 +16,42 @@ mdc: true
 
 **A Framework for LLM Agents to Safely Tune the Linux Scheduler**
 
+Based on "Towards Agentic OS: An LLM Agent Framework for Linux Schedulers" to appear in MLforSystem 2025 workshop in NIPS as spotlight.
+
 <div class="abs-br m-6 text-sm opacity-50">
   Class Project Presentation
 </div>
 
 ---
 
-# Goal and Insight
+# Can LLM Agents fully automatically optimize OS?
 
 <div class="grid grid-cols-2 gap-8">
 <div>
 
-Goal: 
-
 ## Problem
 
-- Kernel schedulers use generic, one-size-fits-all policies
-- Fail to understand app-specific needs (latency vs. throughput, SLOs)
-- Leads to avoidable performance loss
+- **Semantic Gap**: Schedulers fail to understand application needs (latency vs throughputs, SLOs)
+- **Knowledge Gap**: Developers lack workload insight; users lack kernel expertise. Kernel programming is hard, limiting innovation.
 
 ## Current solutions
 
-- Adaptive or programable frameworks...
-- RL methods...
-- Direct tuning from LLM Agents is unsafe, and slow, may degrades performance
-
-LLM should be control plane, not the data plane.
+- **RL-based Schedulers**: Require per-workload training and human specific SLOs
+- **Naïve LLM Agents**: Unsafe (can crash system), inefficient ($6, 33 min/run for a single generation), may reduce performance
 
 </div>
 <div>
 
 ## Our Insight: Decouple Reasoning from Execution
+
+Separate the AI's role of semantic reasoning ("what to optimize") from the system's role of execution ("how to observe and act").
+
+Model the process as 2 stages:
+
+- **Goal-Inference**: uses tools to analyze workload intent and structure, and system environments.
+- **Policy-Synthesis**: LLM config or generate safe, efficient eBPF schedulers from its analysis.
+
+LLM Agent should be in control plane, not the data plane.
 
 </div>
 </div>
