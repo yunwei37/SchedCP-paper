@@ -22,138 +22,102 @@ mdc: true
 
 ---
 
-# Slide 1: The Semantic Gap & Our Insight
-
-## Problem: Schedulers Lack Application-Specific Context
+# Goal and Insight
 
 <div class="grid grid-cols-2 gap-8">
 <div>
 
-### The Semantic Gap
-- Kernel schedulers use generic, one-size-fits-all policies.
-- They fail to understand application-specific needs (e.g., latency vs. throughput).
-- This leads to avoidable performance loss and inefficient resource use.
+Goal: 
+
+## Problem
+
+- Kernel schedulers use generic, one-size-fits-all policies
+- Fail to understand app-specific needs (latency vs. throughput, SLOs)
+- Leads to avoidable performance loss
+
+## Current solutions
+
+- Adaptive or programable frameworks...
+- RL methods...
+- Direct tuning from LLM Agents is unsafe, and slow, may degrades performance
+
+LLM should be control plane, not the data plane.
 
 </div>
 <div>
 
-### Why Naïve Solutions Fail
-- Directly asking an LLM to "write kernel code" is brittle, unsafe, and slow.
-- It often degrades performance and misses the true optimization goal.
+## Our Insight: Decouple Reasoning from Execution
 
 </div>
 </div>
 
 ---
 
-### Our Insight: Decouple Reasoning from Execution
+# System Architecture: SchedCP & Multi-Agent Framework
 
-A structured control plane is needed to separate the two key stages of optimization:
-
-1.  **Goal Inference (The "What")**: The AI's role. Autonomously analyze workload behavior to determine the *semantic goal* (e.g., "minimize p99 latency").
-2.  **Policy Synthesis (The "How")**: The System's role. Translate the goal into a safe, verifiable scheduling policy using robust tools and interfaces.
-
-**Takeaway**: We enable agents to be goal-oriented thinkers, not just unsafe code generators.
-
----
-
-# Slide 2: Architecture — The SchedCP Control Plane
-
-## A Framework for Safe, Autonomous Optimization
-
-SchedCP is an MCP server that provides a stable, verifiable interface for LLM agents.
-
-<div class="grid grid-cols-2 gap-6">
+<div class="grid grid-cols-2 gap-8 mt-6">
 
 <div>
 
-### SchedCP: The Control Plane
-Provides three key services for agents:
-
-**1. Workload Analysis Engine**
-- Ingests traces, profiles, and metrics.
-- Surfaces performance bottlenecks and candidate SLOs.
-
-**2. Scheduler Policy Repository**
-- An evolving library of eBPF scheduler patterns and templates.
-- Enables safe, compositional policy creation.
-
-**3. Execution Verifier**
-- Statically and dynamically analyzes all generated code and configurations *before* deployment.
-- Guarantees safety and stability.
+<img src="/arch-schedcp.png" class="rounded shadow-lg" style="max-height: 500px;" alt="SchedCP Architecture Diagram" />
 
 </div>
+
 <div>
 
-### `sched-agent`: The Autonomous Agent
-A multi-agent system that uses SchedCP to optimize:
+### Control Plane: a MCP server
 
-**Observation Agent**
-- Monitors system signals to identify optimization opportunities.
+- Workload Analysis Engine
+- Policy Repository (eBPF templates for code generation)
+- Execution Verifier (safety checks)
 
-**Planning Agent**
-- Infers goals and selects optimization strategies.
+### sched-agent
 
-**Execution Agent**
-- Synthesizes and deploys eBPF policies via `sched_ext`.
+- **Observation** → Monitoring
+- **Planning** → Goal inference with Reasoning
+- **Execution** → Policy deployment
+- **Learning** → Refinement
 
-**Learning Agent**
-- Evaluates outcomes and refines policies over time.
+Key idea: 
 
-</div>
-</div>
-
-<div class="mt-4 text-center">
-
-**Result**: A closed-loop system where agents reason about *what* to do, and SchedCP provides the safe tools for *how* to do it.
-
-</div>
-
-<div class="mt-6">
-
-<img src="/arch-schedcp.png" class="mx-auto rounded shadow-lg" style="max-height: 350px;" alt="SchedCP Architecture Diagram" />
-
-<div class="text-xs mt-2 opacity-70 text-center">
-Architecture: SchedCP Control Plane with multi-agent system
 </div>
 
 </div>
 
 ---
 
-# Slide 3: Results & Key Achievements
+# Preliminary Evaluations
 
-## Autonomous Agents Achieve Expert-Level Performance
+<div class="grid grid-cols-2 gap-8 mt-4">
 
-Our evaluation shows that `sched-agent`, powered by SchedCP, can autonomously and significantly improve system performance.
+<div>
 
-### Representative Performance Gains
-- **1.79×** faster kernel compilation (throughput).
-- **2.11×** lower P99 latency on `schbench`.
-- **1.60×** higher throughput on `schbench`.
-- **13×** cost reduction vs. naïve "code-gen" agentic approaches.
+### Performance Gains
 
-### What This Proves
-1.  **The Architecture Works**: Decoupling reasoning from execution is the right model for agentic OS optimization.
-2.  **Full Autonomy is Viable**: The system operates safely and effectively with no human in the loop.
-3.  **It's Efficient**: The control plane drastically reduces the cost and complexity of using LLMs for this task.
+- **1.79× faster** kernel compilation
+- **2.11× lower P99 latency** on schbench
+- **1.60× higher throughput** on schbench
+- **13× cost reduction** vs. naïve agents
 
-### Current Scope & Future Work
-- **Focus**: CPU scheduling via `sched_ext` and eBPF.
-- **Next Steps**: Extend the framework to other OS subsystems (I/O, memory, power) and develop a standardized benchmark to drive reproducible research in this new field.
+### Limitaions & Next Steps
 
-<div class="mt-6">
-
-<div class="grid grid-cols-3 gap-4">
+- Develop standardized benchmark framework for Agentic tasks
+- Extend to I/O, memory, power subsystems
 
 <div>
 <img src="/linux-build-results.png" class="rounded shadow-lg" alt="Linux Build Benchmark Results" />
-<div class="text-xs mt-1 opacity-70 text-center">Linux Kernel Build Performance</div>
+<div class="text-xs mt-1 opacity-70 text-center">Config: Kernel Build: <strong>1.79× faster</strong></div>
+</div>
+
 </div>
 
 <div>
+
+<div class="space-y-4">
+
+<div>
 <img src="/schbench-results.png" class="rounded shadow-lg" alt="Schbench Performance Comparison" />
-<div class="text-xs mt-1 opacity-70 text-center">Schbench Latency & Throughput</div>
+<div class="text-xs mt-1 opacity-70 text-center">Config: Schbench: <strong>2.11× lower P99</strong>, <strong>1.60× throughput</strong></div>
 </div>
 
 <div>
@@ -165,9 +129,11 @@ Our evaluation shows that `sched-agent`, powered by SchedCP, can autonomously an
 
 </div>
 
+</div>
+
 ---
 
-# Slide 4: Benchmark Proposal — Design & Evaluation
+# Benchmark Framework Design & Evaluation Methodology
 
 ## A Reproducible Benchmark for Agentic OS Optimization
 
@@ -223,7 +189,7 @@ Score = Σ_w [(Σ_m α_m · I_{w,m}) · 1[hard SLOs met]]
 
 ---
 
-# Slide 5: Workloads, Baselines & Implementation Plan
+# Implementation Plan & Benchmark Specification
 
 ## Concrete Scope & Deliverables
 
