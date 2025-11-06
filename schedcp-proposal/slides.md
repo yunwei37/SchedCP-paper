@@ -36,15 +36,15 @@ Based on "Towards Agentic OS: An LLM Agent Framework for Linux Schedulers" to ap
 
 ### Current solutions:
 
-- **RL-based**: Require per-workload training and human specific SLOs
+- **Traditional RL-based**: Require per-workload training and human specific SLOs
 - **Naïve LLM or Agents**: Fix pipeline that need human guide, or Unsafe (can crash system), inefficient ($6, 33 min/run for a single generation), may reduce performance.
 
 </div>
 <div>
 
-## Our Insight: Decouple Reasoning from Execution
+### Our Insight: Decouple Reasoning from Execution in 2 stages
 
-Separate the AI's role of semantic reasoning ("what to optimize") from the system's role of execution ("how to observe and act").
+Separate the AI's role of reasoning ("what and how to optimize") from the system's role of execution ("how to observe and act"). The system remains safe and useful when AI Agent gets better.
 
 Model the process as 2 stages:
 
@@ -183,7 +183,7 @@ Test with different models and agents (Claude code, codex)
 **CPU-bound**: kernel build, LLVM, xz/gzip, ffmpeg
 **Latency-critical**: schbench, hackbench, context-switch
 **Server**: nginx+wrk, Redis+memtier
-**Analytics**: sort/join, SQLite queries
+**Data processing**: sort/join, SQLite queries
 **Stress**: memory/CPU test suit
 **GPU**: vllm, llama.cpp, pytorch
 
@@ -192,7 +192,9 @@ Each: **clear SLOs + repeatable harness**
 ### Baselines
 - Linux defaults (CFS/EEVDF, tuned)
 - Published RL/ML schedulers
-- Naïve LLM agents (no control plane)
+- Naïve LLM agents (no control plane) with bash access
+
+
 
 </div>
 
@@ -208,12 +210,16 @@ Each: **clear SLOs + repeatable harness**
 
 ### Task Done
 
-Built framework with 2-5 minimal example, working on more:
+Built framework with ~10 workloads, working on more:
 
 https://github.com/eunomia-bpf/schedcp
 
 </div>
 
+</div>
+
+<div class="text-xs mt-6 opacity-60">
+*SLO = Service Level Objective: measurable targets (e.g., P99 latency < 10ms, throughput > 1000 req/s) you set to ensure the services you deliver meet customers' expectations, and define what metrics are better.
 </div>
 
 
