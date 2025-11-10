@@ -1,0 +1,112 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{cite}
+\usepackage{geometry}
+\geometry{
+    left=2.5cm,
+    right=2.5cm,
+    top=2.5cm,
+    bottom=2.5cm
+}
+
+\title{SchedCP: Autonomous OS Optimization with LLM Agents\\
+\large A Framework for Safe, Efficient, and Autonomous Performance Tuning}
+\author{Class Project Presentation}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document presents SchedCP, a framework for LLM agents to safely tune the Linux scheduler. Based on ``Towards Agentic OS: An LLM Agent Framework for Linux Schedulers'' to appear in MLforSystem 2025 workshop in NIPS as spotlight. The framework addresses the challenge of autonomous OS optimization by decoupling reasoning from execution through a two-stage approach.
+\end{abstract}
+
+\section{Introduction}
+
+The question of whether LLM agents can fully automatically optimize operating systems represents a significant challenge in system design. This work begins with a focus on schedulers as a critical component of OS optimization.
+
+\subsection{Problem Statement}
+
+Modern operating systems face two fundamental gaps that limit their ability to optimize performance effectively. The semantic gap manifests when schedulers fail to understand application needs, unable to distinguish between latency-sensitive and throughput-oriented workloads or comprehend service level objectives (SLOs). Simultaneously, a knowledge gap emerges where developers lack workload insight while users lack kernel expertise. The complexity of kernel programming further limits innovation in this space.
+
+\subsection{Current Solutions and Limitations}
+
+Traditional approaches to this problem have relied on reinforcement learning-based methods that require per-workload training and human-specified SLOs. These solutions lack generalizability and require significant human intervention. Alternatively, naïve LLM or agent-based approaches present their own challenges. They typically employ fixed pipelines that require human guidance, operate unsafely with the potential to crash systems, prove inefficient with costs reaching \$6 and 33 minutes per run for a single generation, and may actually reduce performance rather than improve it.
+
+\subsection{Our Insight: Decoupling Reasoning from Execution}
+
+The core insight of SchedCP involves separating the AI's role of reasoning about what and how to optimize from the system's role of execution concerning how to observe and act. This decoupling ensures the system remains safe and useful even as AI agents improve over time. We model this process through two distinct stages. Goal-inference employs tools to analyze workload intent and structure alongside system environments. Policy-synthesis then leverages the LLM to configure or generate safe, efficient eBPF schedulers based on its analysis.
+
+\section{System Architecture}
+
+The SchedCP architecture comprises two main components working in concert to achieve autonomous optimization.
+
+\subsection{Control Plane: MCP Server}
+
+The control plane operates as an MCP (Model Context Protocol) server incorporating three key components. The Workload Analysis Engine provides comprehensive understanding of application behavior and requirements. A Policy Repository maintains eBPF templates for code generation, enabling rapid deployment of optimized schedulers. The Execution Verifier performs safety checks to ensure system stability and prevent harmful operations.
+
+\subsection{Scheduler Agent}
+
+The scheduler agent implements a complete optimization cycle through four phases. During observation, it performs comprehensive monitoring of system behavior and workload characteristics. The planning phase involves goal inference with reasoning to determine optimization objectives. Execution encompasses policy deployment to implement the chosen optimizations. Finally, the learning phase enables refinement of strategies based on observed outcomes.
+
+The key architectural principle positions the LLM agent in the control plane rather than the data plane, allowing it to manage the OS like a human Site Reliability Engineer without introducing runtime overhead.
+
+\section{Preliminary Evaluations}
+
+Our initial evaluations demonstrate significant improvements across multiple metrics when using Claude code with Claude Opus 4.
+
+\subsection{Performance Results}
+
+The SchedCP framework achieved 1.79× faster execution times, 2.11× lower P99 latency, 1.60× higher throughput, and 13× cost reduction compared to naïve agent implementations. These results were validated across diverse workloads including kernel builds and the schbench benchmark.
+
+For kernel build workloads, the framework demonstrated a 1.79× speedup in compilation times. The schbench benchmark showed particularly impressive results with 2.11× lower P99 latency and 1.60× throughput improvement, indicating the framework's effectiveness for latency-critical applications.
+
+\subsection{Limitations and Future Work}
+
+While these results are promising, several areas require further development. We need to develop a standardized benchmark framework for agentic tasks to ensure reproducible and comparable results across different implementations. Additionally, extending the framework beyond CPU scheduling to encompass I/O, memory, and power subsystems represents a natural progression of this work.
+
+\section{Benchmark Framework Design}
+
+The benchmark framework evaluates LLM agents' ability to optimize OS behavior for diverse workloads under explicit SLOs and budgets, including time, tokens, CPU usage, and energy consumption. This framework builds a reinforcement learning-like environment for agents, allowing them to tune OS configurations and use code generation to alter OS behavior.
+
+\subsection{Research Questions}
+
+Our benchmark framework addresses four key research questions. First, can agents infer optimization goals from telemetry without being explicitly told the SLO? Second, can they maintain SLOs under drift with controller-grade stability, avoiding thrashing behavior? Third, what improvement do we achieve per token or second, and what are the scaling laws governing this relationship? Finally, how do agents achieve optimizations, and do we need to design better system interfaces to facilitate their work?
+
+\subsection{Task Design: Two-Phase Challenge}
+
+The benchmark implements a two-phase challenge structure. During goal inference, agents must analyze traces, metrics, and logs to infer bottlenecks and optimization targets. The policy and tool synthesis phase requires agents to select and configure existing tools or synthesize new code, particularly eBPF schedulers, to meet specified SLOs. This design allows testing with different models and agents, including Claude code and Codex implementations.
+
+\section{Benchmark Implementation}
+
+Our implementation employs open-source software using Helm and Docker with pre-defined SLOs derived from documentation.
+
+\subsection{Workload Suite}
+
+The comprehensive workload suite includes 20-30 different applications categorized by their characteristics. CPU-bound workloads include kernel builds, LLVM compilation, compression tools like xz and gzip, and ffmpeg encoding. Latency-critical workloads encompass schbench, hackbench, and context-switch benchmarks. Server workloads combine nginx with wrk and Redis with memtier for realistic service scenarios. Data processing tasks include sort and join operations alongside SQLite queries. Stress testing covers memory and CPU test suites. GPU workloads incorporate vllm, llama.cpp, and PyTorch applications. Each workload includes clear SLOs and repeatable harness configurations.
+
+\subsection{Baselines and Infrastructure}
+
+We compare against three baselines: Linux defaults using CFS/EEVDF with tuned profiles, published RL/ML schedulers from recent literature, and naïve LLM agents without control plane access but with bash capabilities.
+
+The infrastructure comprises several components. The runner operates in containers or VMs with pinned kernel versions for consistency. An agent sandbox provides the MCP server and verifier for safe experimentation. The evaluator performs multi-run statistics and SLO verification. Reproducibility is ensured through fixed random seeds and consistent hardware profiles.
+
+Currently, we have built a framework incorporating approximately 10 workloads, with ongoing work to expand this suite. The complete implementation is available at \url{https://github.com/eunomia-bpf/schedcp}.
+
+\section{Conclusion}
+
+SchedCP represents a significant advancement in autonomous OS optimization, demonstrating that LLM agents can effectively tune system performance when properly architected. By decoupling reasoning from execution and implementing comprehensive safety mechanisms, we achieve substantial performance improvements while maintaining system stability. The framework's success in reducing latency, improving throughput, and decreasing operational costs validates the potential of AI-driven system optimization.
+
+Future work will focus on expanding the benchmark suite, extending the framework to additional OS subsystems, and developing standardized evaluation methodologies for agentic systems. As LLM capabilities continue to improve, the SchedCP framework provides a foundation for increasingly sophisticated autonomous system management.
+
+\section*{References}
+
+Zheng et al., ``Towards Agentic OS: An LLM Agent Framework for Linux Schedulers,'' MLforSystem 2025 workshop, NIPS. Available at: \url{https://arxiv.org/html/2509.01245v4}
+
+\end{document}
