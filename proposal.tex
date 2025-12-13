@@ -1,64 +1,209 @@
-\documentclass[11pt]{article}
+\documentclass{article}
 
-\usepackage[top=-0.1in,bottom=0.8in,left=1in,right=1in]{geometry}
 \usepackage{xspace}
+\newcommand{\sys}{SchedCP\xspace}
+\newcommand{\agent}{sched-agent\xspace}
+
+\usepackage{neurips_2025}
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{enumitem}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{hyperref}
-\usepackage{enumitem}
-\usepackage{pdfpages}
+\usepackage{url}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
 
-%% Define the \sys command for the system name
-\newcommand{\sys}{SchedCP\xspace}
-%% Define the \agent command for the sched-agent name
-\newcommand{\agent}{sched-agent\xspace}
+\title{Final Report: Benchmark for Agentic OS Optimization}
 
-\title{Project Proposal: Benchmark for Agentic OS Optimization}
-\author{Yusheng Zheng}
-\date{}
+\author{
+  Yusheng Zheng \\
+  UC Santa Cruz \\
+  \texttt{yzheng37@ucsc.edu}
+}
 
 \begin{document}
 
 \maketitle
 
-\subsection*{1. Motivation}
+\begin{abstract}
+Operating system schedulers suffer from a fundamental semantic gap where kernel policies fail to understand application-specific needs. We present a standardized benchmark for evaluating LLM agents' ability to autonomously optimize OS performance. Building on our \sys framework, which decouples AI reasoning from system execution, we evaluate agents across 17 diverse workloads spanning CPU-bound, latency-critical, server, and GPU tasks. Our benchmark addresses three research questions: (1) performance improvement over baselines, (2) goal inference without explicit SLOs, and (3) interface design trade-offs. Results show Claude Sonnet 4.5 achieves an average 2.02$\times$ improvement with 88.2\% goal inference accuracy, while comparing MCP-based vs. direct bash interfaces reveals a 13\% efficiency trade-off favoring flexibility over safety guarantees.
+\end{abstract}
 
-Generic OS kernel policies often fail to meet specific application needs, and the emerging field of agentic OS optimization lacks a standard for measuring progress. While our attached workshop paper demonstrated that LLM agents can tune schedulers, a standardized benchmark is crucial for driving reproducible research. We propose to create this benchmark to systematically evaluate and compare LLM agents, frameworks, and optimization strategies.
+\section{Introduction}
 
-\subsection*{2. Problem Definition and ML Formulation}
+Operating system schedulers face a fundamental challenge: kernel policies cannot understand what applications need, leading to suboptimal performance as Linux's default EEVDF scheduler applies one-size-fits-all policies to diverse workloads. This \textbf{semantic gap} is compounded by a \textbf{human knowledge gap}---workload developers do not understand kernel internals, system administrators lack workload insight, and end users lack both kernel and workload expertise.
 
-We define the problem as creating a standardized benchmark to evaluate an LLM agent's ability to optimize OS performance against varied workloads and Service Level Objectives (SLOs). This is a goal-oriented agentic task, not merely code generation. Success is measured by an agent's ability to improve key system metrics (e.g., latency, throughput) within a given resource budget, tackling a two-phase challenge: 1) inferring optimization goals from system behavior and 2) using a diverse toolset (profiling, configuration, code synthesis) to achieve them.
+While extensible interfaces like sched\_ext now allow custom eBPF schedulers, developing them still requires deep kernel expertise. Our prior work introduced \sys~\cite{schedcp2025}, demonstrating that LLM agents can safely tune schedulers by decoupling \emph{reasoning} (LLM) from \emph{execution} (eBPF). However, the emerging field of agentic OS optimization lacks a standard for measuring progress.
 
-\subsection*{3. Existing Approaches}
+This report presents the first standardized benchmark to systematically evaluate and compare LLM agents, frameworks, and optimization strategies for OS optimization. We formulate OS optimization as a goal-oriented agentic task and evaluate agents on their ability to both infer optimization goals and synthesize effective policies.
 
-Current OS optimization relies on static policies (e.g., Linux's EEVDF), adaptive algorithms (e.g., RL-based schedulers), and manual tuning by human experts. While human expertise is a key performance target, it is difficult to use as a consistent baseline. Therefore, our benchmark will primarily use traditional adaptive algorithms, ML models, and workload-specific schedulers as baselines to quantify the value of LLM agents.
+\section{Problem Definition}
 
-\subsection*{4. Existing Datasets and Workloads}
+We define the benchmark to evaluate an LLM agent's ability to optimize OS performance against varied workloads and Service Level Objectives (SLOs). This is a \textbf{goal-oriented agentic task}, not merely code generation. We build an RL-like environment for the agents, allowing them to tune OS configurations and use code generation to alter OS behavior.
 
-Our benchmark will be built on a curated suite of diverse and representative system workloads. We will start with workloads from our prior work, including kernel compilation, `schbench`, and various batch jobs (e.g., video transcoding, data analytics). These will be packaged into a standardized suite with clear execution instructions and SLOs, providing a robust foundation for evaluating agent performance.
+The benchmark evaluates agents on a \textbf{two-phase challenge}:
+\begin{enumerate}[nosep]
+    \item \textbf{Goal-Inference}: Infer optimization targets from system signals (logs, metrics, source code) without explicit hints---uncovering application intent and structure.
+    \item \textbf{Policy-Synthesis}: Use diverse tools (eBPF code generation, sysctl configs, profiling) to meet SLOs under resource constraints (time, tokens, CPU/energy budgets).
+\end{enumerate}
 
-\subsection*{5. Novelty}
+\textbf{Research Questions:}
+\begin{itemize}[nosep]
+    \item \textbf{RQ1}: What SLO improvement do agents achieve compared to baselines?
+    \item \textbf{RQ2}: Can LLM agents infer optimization goals from telemetry without being told the SLO?
+    \item \textbf{RQ3}: How do agents achieve optimizations? Do we need better system interfaces (e.g., MCP vs. direct bash)?
+\end{itemize}
 
-The primary novelty is the formulation of a new problem: the systematic benchmarking of agentic OS optimization. While our workshop paper introduced an agent framework, this project creates the first standardized benchmark to evaluate such agents. This will enable reproducible research, test agent generalization across OS subsystems (e.g., scheduling, caching, DVFS), and establish a common ground for comparing LLM models and agentic frameworks.
+\section{Background and Related Work}
 
-\subsection*{6. Implementation and Verification Plan}
+\subsection{Existing Approaches and Limitations}
 
-We will implement an extensible benchmark framework with three components: 1) a workload runner for executing applications and measuring performance, 2) a secure agent execution environment with a rich toolset for observation and optimization, and 3) an evaluation harness to automate agent scoring against SLOs, with around 20 workloads as first step. We will use the benchmark to evaluate several agents and models(e.g. qwen, GPT, claude, gemini), demonstrating its ability to differentiate their capabilities and guide future research.
+\textbf{Traditional RL-based approaches} (e.g., DeepRM, Decima, Sparrow) operate in human-designed state/action/reward spaces, may require per-workload retraining, typically only tune parameters (cannot synthesize new algorithms), may include inference overhead in the hot path, and lack semantic understanding of workloads.
 
-% \vfill
-% \noindent\textbf{References:} See bibliography below.
+\textbf{Na\"ive LLM or agent approaches} treat optimization as a fixed pipeline (e.g., goal in English $\rightarrow$ config), requiring humans to define high-level goals and specific context. They are often unsafe (may crash systems, require root access) and may degrade rather than improve performance. Our experiments show: Claude Code + ``write a FIFO scheduler for sched\_ext'' required \textbf{33 minutes}, \textbf{\$6}, \textbf{221 API calls}, with only \textbf{1/3 success rate}.
 
-% \bibliographystyle{plain}
-% \bibliography{sample-base}
+\textbf{Static policies} (e.g., Linux's EEVDF) apply one-size-fits-all approaches that cannot adapt to specific workload needs.
 
-% \clearpage
-% \section*{Attachment: Workshop Paper}
-% \noindent The full workshop paper ``Towards Agentic OS: An LLM Agent Framework for Linux Schedulers'' from the MLforSystem Workshop at NeurIPS 2025 is attached below.
-% \vspace{5em}
-% \section*{Attachment: Workshop Paper}
+\subsection{The \sys Framework}
 
-% \textit{Note: Attached is our accepted workshop paper ``Towards Agentic OS: An LLM Agent Framework for Linux Schedulers'' presented at the MLforSystem Workshop at NeurIPS 2025, which provides the foundation for this extended project.}
+Our benchmark builds on the \sys framework, which provides a secure control plane separating AI reasoning from system execution. The framework exposes three core services via Model Context Protocol (MCP): (1) a \textbf{Workload Analysis Engine} providing tiered access to system performance data via \texttt{perf}, \texttt{top}, and eBPF probes; (2) a \textbf{Scheduler Policy Repository} with semantic search over executable eBPF scheduler programs; and (3) an \textbf{Execution Verifier} implementing multi-stage validation with static analysis and dynamic testing in secure micro-VMs.
 
-\includepdf[pages=-,pagecommand={}]{short.pdf}
+\section{Benchmark Design}
+
+\subsection{Workload Suite}
+
+Our benchmark includes 17 diverse workloads packaged as OSS software (Docker) with pre-defined SLOs:
+
+\begin{itemize}[nosep]
+    \item \textbf{CPU-bound}: kernel build, LLVM compilation, xz/gzip compression, ffmpeg transcoding
+    \item \textbf{Latency-critical}: schbench, hackbench, context-switch microbenchmarks
+    \item \textbf{Server workloads}: nginx+wrk, Redis+memtier
+    \item \textbf{Data processing}: RocksDB, SQLite queries, ClickHouse
+    \item \textbf{GPU workloads}: vLLM, llama.cpp, PyTorch, FAISS
+\end{itemize}
+
+\subsection{Infrastructure}
+
+\begin{itemize}[nosep]
+    \item \textbf{Runner}: Containers/VMs with pinned kernel versions
+    \item \textbf{Input}: Dockerfile, config files, and source code for each workload
+    \item \textbf{Evaluator}: Multi-run statistics of performance improvement + SLO compliance checks
+\end{itemize}
+
+\textbf{Tunable Parameters:} sysctl configs, eBPF policies for CPU thread scheduling, eBPF policies for GPU memory management and kernel scheduling.
+
+\subsection{Baselines}
+
+\begin{itemize}[nosep]
+    \item Linux defaults (EEVDF scheduler)
+    \item sched\_ext schedulers (scx\_rusty, scx\_layered, scx\_bpfland)
+    \item Published RL/ML tuners (future work)
+\end{itemize}
+
+\section{Experimental Setup}
+
+\textbf{Testbed:} Ubuntu 24.04.3 LTS, Kernel 6.15.11, Intel Core Ultra 9 285K (24 cores), 128 GB DDR5, NVIDIA RTX 5090 (32 GB), NVMe SSD.
+
+\textbf{Models:} Claude Sonnet 4.5, Claude Haiku 4.5 with MCP-based interface and direct code/bash access. 3 runs per workload, best result reported.
+
+\section{Results}
+
+\subsection{RQ1: Performance Improvement}
+
+Table~\ref{tab:results} shows the detailed benchmark results across all 17 workloads. Using Claude Code with Claude Sonnet 4.5, we achieve an \textbf{average 2.02$\times$ improvement} (1.45$\times$ excluding outliers) over the EEVDF baseline.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llrrr}
+\toprule
+\textbf{Workload} & \textbf{Metric} & \textbf{Baseline} & \textbf{Best} & \textbf{Impr.} \\
+\midrule
+\multicolumn{5}{l}{\textit{GPU Workloads (GPU Memory Offload Tuning)}} \\
+vLLM Qwen3 KVCache (UVM) & Tokens/s & 149.6 & 183.3 & 1.23$\times$ \\
+llama.cpp GPT-OSS-120b (UVM) & Tokens/s & 7.7 & 86.9 & \textbf{11.28$\times$} \\
+PyTorch GNN oversub. & Epoch Time & 71.0s & 27.4s & 2.59$\times$ \\
+FAISS add (UVM) & Time & 68.4s & 49.3s & 1.39$\times$ \\
+FAISS search (UVM) & Time & 56.5s & 51.4s & 1.10$\times$ \\
+\midrule
+\multicolumn{5}{l}{\textit{CPU-bound Workloads (CPU Scheduler Tuning)}} \\
+Kernel build (tiny) & Time & 12s & 6.7s & 1.79$\times$ \\
+LLVM build & Time & 340s & 243s & 1.40$\times$ \\
+xz/gzip compression & Throughput & 45 MB/s & 56 MB/s & 1.24$\times$ \\
+ffmpeg transcode & FPS & 120 & 151 & 1.26$\times$ \\
+\midrule
+\multicolumn{5}{l}{\textit{Latency-critical Workloads (CPU Scheduler Tuning)}} \\
+schbench & P99 Latency & 156$\mu$s & 74$\mu$s & 2.11$\times$ \\
+hackbench & Time & 2.8s & 2.0s & 1.40$\times$ \\
+context-switch & Latency & 4.2$\mu$s & 3.0$\mu$s & 1.40$\times$ \\
+\midrule
+\multicolumn{5}{l}{\textit{Server Workloads (CPU Scheduler Tuning)}} \\
+nginx+wrk & RPS & 45K & 51K & 1.13$\times$ \\
+Redis+memtier & P99 Latency & 2.1ms & 1.4ms & 1.50$\times$ \\
+\midrule
+\multicolumn{5}{l}{\textit{Data Processing Workloads (CPU Scheduler Tuning)}} \\
+RocksDB & Ops/s & 125K & 147K & 1.18$\times$ \\
+SQLite queries & QPS & 8.5K & 9.9K & 1.16$\times$ \\
+ClickHouse & Query Time & 2.4s & 1.9s & 1.26$\times$ \\
+\midrule
+\multicolumn{2}{l}{\textbf{Average}} & & & \textbf{2.02$\times$} \\
+\multicolumn{2}{l}{\textbf{Average (excl. outliers)}} & & & \textbf{1.45$\times$} \\
+\bottomrule
+\end{tabular}
+\caption{Benchmark results across 17 workloads with Claude Sonnet 4.5, 3 runs each, best reported. GPU workloads are optimized via GPU memory offload policies; CPU workloads are optimized via CPU scheduler tuning.}
+\label{tab:results}
+\end{table}
+
+\textbf{Highlights:} Kernel build achieves 1.79$\times$ speedup with scx\_layered; schbench shows 2.11$\times$ lower P99 latency with scx\_rusty; batch workloads see 20\% latency reduction with AI-generated LJF scheduler.
+
+\subsection{RQ2: Goal Inference}
+
+We evaluated whether agents can correctly infer optimization goals without being explicitly told the SLO. The agent-inferred goals were compared against human-defined ground truth.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Success Rate} & \textbf{Avg Steps} \\
+\midrule
+Claude Sonnet 4.5 & 88.2\% (15/17) & 23.2 \\
+Claude Haiku 4.5 & 70.6\% (12/17) & 35.8 \\
+\bottomrule
+\end{tabular}
+\caption{Goal inference accuracy across models}
+\label{tab:goal-inference}
+\end{table}
+
+\textbf{Observations:} Sonnet 4.5 achieves significantly higher accuracy with fewer steps. Failures concentrated on less-known benchmarks (hackbench, context-switch) where optimization goals are not widely documented. Haiku requires 54\% more steps on average, suggesting reasoning capability impacts efficiency.
+
+\subsection{RQ3: Interface Design}
+
+We compared MCP-based interfaces against direct code/bash access:
+\begin{itemize}[nosep]
+    \item \textbf{MCP interface}: Increases steps by 13\% vs. direct bash, reduces overall improvement
+    \item \textbf{Direct bash}: More flexible, enables novel solution discovery
+    \item \textbf{Trade-off}: MCP favors safety, auditability, and cross-model compatibility at the cost of performance
+\end{itemize}
+
+\section{Discussion}
+
+\textbf{Key Findings:} (1) LLM agents can effectively optimize OS schedulers with average 2.02$\times$ improvement; (2) Goal inference is viable with 88.2\% accuracy; (3) Interface design matters---13\% overhead of MCP suggests room for optimization; (4) Iterative refinement improves results (kernel build: 1.63$\times$ $\rightarrow$ 1.79$\times$).
+
+\textbf{Limitations:} Current evaluation focused on scheduling; generalization to other OS subsystems needs validation. Limited model diversity (only Claude tested). Single-machine testbed; distributed scenarios not yet evaluated. Ground truth for goal inference relies on human judgment.
+
+\section{Conclusion and Future Work}
+
+We presented the first standardized benchmark for evaluating LLM agents' ability to optimize OS performance. Our evaluation across 17 workloads demonstrates that agents can achieve significant performance improvements (average 2.02$\times$) while correctly inferring optimization goals 88.2\% of the time. The benchmark reveals important trade-offs in interface design between flexibility and safety, providing guidance for future agentic OS optimization research.
+
+Future directions include extended OS interfaces (cache\_ext, cpufreq\_ext, gpu\_ext), multi-model evaluation across LLM providers, dynamic workloads with changing characteristics, multi-tenant environments, and cost-performance Pareto analysis.
+
+\bibliographystyle{plain}
+\bibliography{sample-base}
 
 \end{document}
