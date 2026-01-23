@@ -4,7 +4,7 @@
 \newcommand{\sys}{SchedCP\xspace}
 \newcommand{\agent}{sched-agent\xspace}
 
-\usepackage{neurips_2025}
+\usepackage[final]{neurips_2025}
 
 \usepackage{booktabs}
 \usepackage{graphicx}
@@ -24,7 +24,7 @@
 \author{
   Yusheng Zheng \\
   UC Santa Cruz \\
-  \texttt{yzheng37@ucsc.edu}
+  \texttt{yzhen165@ucsc.edu}
 }
 
 \begin{document}
@@ -32,47 +32,47 @@
 \maketitle
 
 \begin{abstract}
-Operating system schedulers suffer from a fundamental semantic gap where kernel policies fail to understand application-specific needs. We present a standardized benchmark for evaluating LLM agents' ability to autonomously optimize OS performance. Building on our \sys framework, which decouples AI reasoning from system execution, we evaluate agents across 17 diverse workloads spanning CPU-bound, latency-critical, server, and GPU tasks. Our benchmark addresses three research questions: (1) performance improvement over baselines, (2) goal inference without explicit SLOs, and (3) interface design trade-offs. Results show Claude Sonnet 4.5 achieves an average 2.02$\times$ improvement with 88.2\% goal inference accuracy, while comparing MCP-based vs. direct bash interfaces reveals a 13\% efficiency trade-off favoring flexibility over safety guarantees.
+Operating system schedulers suffer from a fundamental semantic gap where kernel policies fail to understand application-specific needs. We present a standardized benchmark for evaluating LLM agents' ability to autonomously optimize OS performance. Building on our \sys framework, which decouples AI reasoning from system execution, we evaluate agents across 17 diverse workloads spanning CPU-bound, latency-critical, server, and GPU tasks. Our benchmark addresses three research questions: (1) performance improvement over baselines, (2) goal inference without explicit SLOs, and (3) interface design trade-offs. Results show Claude Sonnet 4.5 achieves an average 2.02$\times$ improvement with 88.2\% goal inference accuracy.
 \end{abstract}
 
 \section{Introduction}
 
-Operating system schedulers face a fundamental challenge: kernel policies cannot understand what applications need, leading to suboptimal performance as Linux's default EEVDF scheduler applies one-size-fits-all policies to diverse workloads. This \textbf{semantic gap} is compounded by a \textbf{human knowledge gap}---workload developers do not understand kernel internals, system administrators lack workload insight, and end users lack both kernel and workload expertise.
+Operating system schedulers face a fundamental challenge: kernel policies cannot understand what applications need, leading to suboptimal performance as Linux's default EEVDF scheduler applies one-size-fits-all policies to diverse workloads. This semantic gap is compounded by a human knowledge gap---workload developers do not understand kernel internals, system administrators lack workload insight, and end users lack both kernel and workload expertise.
 
 While extensible interfaces like sched\_ext now allow custom eBPF schedulers, developing them still requires deep kernel expertise. Our prior work introduced \sys~\cite{schedcp2025}, demonstrating that LLM agents can safely tune schedulers by decoupling \emph{reasoning} (LLM) from \emph{execution} (eBPF). However, the emerging field of agentic OS optimization lacks a standard for measuring progress.
 
-This report presents the first standardized benchmark to systematically evaluate and compare LLM agents, frameworks, and optimization strategies for OS optimization. We formulate OS optimization as a goal-oriented agentic task and evaluate agents on their ability to both infer optimization goals and synthesize effective policies.
+This report presents the first standardized benchmark to systematically evaluate and compare LLM agents, frameworks, and optimization strategies for OS optimization. We formulate OS optimization as a goal-oriented agentic task and evaluate agents on their ability to both infer optimization goals and synthesize effective policies. The benchmark implementation is available at \url{https://github.com/eunomia-bpf/SchedCP}.
 
 \section{Problem Definition}
 
-We define the benchmark to evaluate an LLM agent's ability to optimize OS performance against varied workloads and Service Level Objectives (SLOs). This is a \textbf{goal-oriented agentic task}, not merely code generation. We build an RL-like environment for the agents, allowing them to tune OS configurations and use code generation to alter OS behavior.
+We define the benchmark to evaluate an LLM agent's ability to optimize OS performance against varied workloads and Service Level Objectives (SLOs). This is a goal-oriented agentic task, not merely code generation. We build an RL-like environment for the agents, allowing them to tune OS configurations and use code generation to alter OS behavior.
 
-The benchmark evaluates agents on a \textbf{two-phase challenge}:
+The benchmark evaluates agents on a two-phase challenge:
 \begin{enumerate}[nosep]
-    \item \textbf{Goal-Inference}: Infer optimization targets from system signals (logs, metrics, source code) without explicit hints---uncovering application intent and structure.
-    \item \textbf{Policy-Synthesis}: Use diverse tools (eBPF code generation, sysctl configs, profiling) to meet SLOs under resource constraints (time, tokens, CPU/energy budgets).
+    \item Goal-Inference: Infer optimization targets from system signals (logs, metrics, source code) without explicit hints---uncovering application intent and structure.
+    \item Policy-Synthesis: Use diverse tools (eBPF code generation, sysctl configs, profiling) to meet SLOs under resource constraints (time, tokens, CPU/energy budgets).
 \end{enumerate}
 
-\textbf{Research Questions:}
+Research Questions:
 \begin{itemize}[nosep]
-    \item \textbf{RQ1}: What SLO improvement do agents achieve compared to baselines?
-    \item \textbf{RQ2}: Can LLM agents infer optimization goals from telemetry without being told the SLO?
-    \item \textbf{RQ3}: How do agents achieve optimizations? Do we need better system interfaces (e.g., MCP vs. direct bash)?
+    \item RQ1: What SLO improvement do agents achieve compared to baselines?
+    \item RQ2: Can LLM agents infer optimization goals from telemetry without being told the SLO?
+    \item RQ3: How do agents achieve optimizations? Do we need better system interfaces (e.g., MCP vs. direct bash)?
 \end{itemize}
 
 \section{Background and Related Work}
 
 \subsection{Existing Approaches and Limitations}
 
-\textbf{Traditional RL-based approaches} (e.g., DeepRM, Decima, Sparrow) operate in human-designed state/action/reward spaces, may require per-workload retraining, typically only tune parameters (cannot synthesize new algorithms), may include inference overhead in the hot path, and lack semantic understanding of workloads.
+Traditional RL-based approaches (e.g., DeepRM, Decima, Sparrow) operate in human-designed state/action/reward spaces, may require per-workload retraining, typically only tune parameters (cannot synthesize new algorithms), may include inference overhead in the hot path, and lack semantic understanding of workloads.
 
-\textbf{Na\"ive LLM or agent approaches} treat optimization as a fixed pipeline (e.g., goal in English $\rightarrow$ config), requiring humans to define high-level goals and specific context. They are often unsafe (may crash systems, require root access) and may degrade rather than improve performance. Our experiments show: Claude Code + ``write a FIFO scheduler for sched\_ext'' required \textbf{33 minutes}, \textbf{\$6}, \textbf{221 API calls}, with only \textbf{1/3 success rate}.
+Na\"ive LLM or agent approaches treat optimization as a fixed pipeline (e.g., goal in English $\rightarrow$ config), requiring humans to define high-level goals and specific context. They are often unsafe (may crash systems, require root access) and may degrade rather than improve performance. Our experiments show: Claude Code + ``write a FIFO scheduler for sched\_ext'' required 33 minutes, \$6, 221 API calls, with only 1/3 success rate.
 
-\textbf{Static policies} (e.g., Linux's EEVDF) apply one-size-fits-all approaches that cannot adapt to specific workload needs.
+Static policies (e.g., Linux's EEVDF) apply one-size-fits-all approaches that cannot adapt to specific workload needs.
 
 \subsection{The \sys Framework}
 
-Our benchmark builds on the \sys framework, which provides a secure control plane separating AI reasoning from system execution. The framework exposes three core services via Model Context Protocol (MCP): (1) a \textbf{Workload Analysis Engine} providing tiered access to system performance data via \texttt{perf}, \texttt{top}, and eBPF probes; (2) a \textbf{Scheduler Policy Repository} with semantic search over executable eBPF scheduler programs; and (3) an \textbf{Execution Verifier} implementing multi-stage validation with static analysis and dynamic testing in secure micro-VMs.
+Our benchmark builds on the \sys framework, which provides a secure control plane separating AI reasoning from system execution. The framework exposes three core services via Model Context Protocol (MCP): (1) a Workload Analysis Engine providing tiered access to system performance data via \texttt{perf}, \texttt{top}, and eBPF probes; (2) a Scheduler Policy Repository with semantic search over executable eBPF scheduler programs; and (3) an Execution Verifier implementing multi-stage validation with static analysis and dynamic testing in secure micro-VMs.
 
 \section{Benchmark Design}
 
@@ -116,7 +116,7 @@ Our benchmark includes 17 diverse workloads packaged as OSS software (Docker) wi
 
 \subsection{RQ1: Performance Improvement}
 
-Table~\ref{tab:results} shows the detailed benchmark results across all 17 workloads. Using Claude Code with Claude Sonnet 4.5, we achieve an \textbf{average 2.02$\times$ improvement} (1.45$\times$ excluding outliers) over the EEVDF baseline.
+Table~\ref{tab:results} shows the detailed benchmark results across all 17 workloads. Using Claude Code with Claude Sonnet 4.5, we achieve an \textbf{average 2.02$\times$ improvement} (1.45$\times$ excluding outliers).
 
 \begin{table}[h]
 \centering
@@ -160,7 +160,7 @@ ClickHouse & Query Time & 2.4s & 1.9s & 1.26$\times$ \\
 \label{tab:results}
 \end{table}
 
-\textbf{Highlights:} Kernel build achieves 1.79$\times$ speedup with scx\_layered; schbench shows 2.11$\times$ lower P99 latency with scx\_rusty; batch workloads see 20\% latency reduction with AI-generated LJF scheduler.
+\textbf{Highlights:} Kernel build achieves 1.79$\times$ speedup with scx\_layered; schbench shows 2.11$\times$ lower P99 latency with scx\_rusty.
 
 \subsection{RQ2: Goal Inference}
 
@@ -193,7 +193,7 @@ We compared MCP-based interfaces against direct code/bash access:
 
 \section{Discussion}
 
-\textbf{Key Findings:} (1) LLM agents can effectively optimize OS schedulers with average 2.02$\times$ improvement; (2) Goal inference is viable with 88.2\% accuracy; (3) Interface design matters---13\% overhead of MCP suggests room for optimization; (4) Iterative refinement improves results (kernel build: 1.63$\times$ $\rightarrow$ 1.79$\times$).
+\textbf{Key Findings:} (1) LLM agents can effectively optimize OS schedulers with average 2.02$\times$ improvement; (2) Goal inference is viable with 88.2\% accuracy; (3) Interface design matters---13\% overhead of MCP suggests room for optimization.
 
 \textbf{Limitations:} Current evaluation focused on scheduling; generalization to other OS subsystems needs validation. Limited model diversity (only Claude tested). Single-machine testbed; distributed scenarios not yet evaluated. Ground truth for goal inference relies on human judgment.
 
